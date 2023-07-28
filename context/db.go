@@ -69,7 +69,6 @@ func SetupAmfCollection() {
 		factory.AmfConfig.Configuration.AmfDBName = "sdcore_amf"
 	}
 
-
 	if (factory.AmfConfig.Configuration.Mongodb != nil) &&
 		(factory.AmfConfig.Configuration.Mongodb.Url != "") {
 		mongoDbUrl = factory.AmfConfig.Configuration.Mongodb.Url
@@ -196,6 +195,7 @@ func DbFetchRanUeByRanUeNgapID(ranUeNgapID int64, ran *AmfRan) *RanUe {
 	//If so, then return the stored RanUE
 	//else return RanUE from newly fetched AmfUe
 	//and store in context
+	ran.RanUeList = append(ran.RanUeList, ue.RanUe[models.AccessType__3_GPP_ACCESS])
 	ranUe := ran.RanUeFindByRanUeNgapIDLocal(ranUeNgapID)
 	if ranUe != nil {
 		return ranUe

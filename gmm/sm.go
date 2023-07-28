@@ -9,6 +9,7 @@ package gmm
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/omec-project/amf/context"
 	gmm_message "github.com/omec-project/amf/gmm/message"
@@ -430,6 +431,8 @@ func ContextSetup(state *fsm.State, event fsm.EventType, args fsm.ArgsType) {
 		}
 	case ContextSetupSuccessEvent:
 		logger.GmmLog.Debugln(event)
+		amfUe := args[ArgAmfUe].(*context.AmfUe)
+		amfUe.GmmLog.Infoln("Registration %+v complete", time.Now().UnixNano())
 	case NwInitiatedDeregistrationEvent:
 		logger.GmmLog.Debugln(event)
 		amfUe := args[ArgAmfUe].(*context.AmfUe)
