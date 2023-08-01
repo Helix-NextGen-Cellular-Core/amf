@@ -360,6 +360,7 @@ func forward5GSMMessageToSMF(
 
 // Handle cleartext IEs of Registration Request, which cleattext IEs defined in TS 24.501 4.4.6
 func HandleRegistrationRequest(ue *context.AmfUe, anType models.AccessType, procedureCode int64,
+	ue.GmmLog.Infoln("Registration %+v start", time.Now().UnixNano())
 	registrationRequest *nasMessage.RegistrationRequest) error {
 	var guamiFromUeGuti models.Guami
 	amfSelf := context.AMF_Self()
@@ -558,8 +559,7 @@ func IdentityVerification(ue *context.AmfUe) bool {
 }
 
 func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) error {
-	ue.GmmLog.Infoln("Handle InitialRegistration")
-	ue.GmmLog.Infoln("Registration %+v start", time.Now().UnixNano())
+	ue.GmmLog.Infoln("Handle InitialRegistration", time.Now().UnixNano())
 	amfSelf := context.AMF_Self()
 
 	ue.ClearRegistrationData()
@@ -632,6 +632,8 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 	// TODO (step 12 optional): the new AMF initiates ME identity check by invoking the
 	// N5g-eir_EquipmentIdentityCheck_Get service operation
 
+	// TODO att time stame
+	ue.GmmLog.Infoln("before  communicateWithUDM", time.Now().UnixNano())
 	if ue.ServingAmfChanged || ue.State[models.AccessType_NON_3_GPP_ACCESS].Is(context.Registered) ||
 		!ue.SubscriptionDataValid {
 		if err := communicateWithUDM(ue, anType); err != nil {
@@ -643,7 +645,9 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 		Supi: optional.NewString(ue.Supi),
 	}
 	for {
+		ue.GmmLog.Infoln("before SendSearchNFInstances", time.Now().UnixNano())
 		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_PCF, models.NfType_AMF, &param)
+		ue.GmmLog.Infoln("after SendSearchNFInstances", time.Now().UnixNano())
 		if err != nil {
 			ue.GmmLog.Error("AMF can not select an PCF by NRF")
 		} else {
@@ -665,8 +669,11 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 		}
 		time.Sleep(500 * time.Millisecond) // sleep a while when search NF Instance fail
 	}
-
+	ue.GmmLog.Infoln("before AMPolicyControlCreate", time.Now().UnixNano())
+	// TODO att time stame
 	problemDetails, err := consumer.AMPolicyControlCreate(ue, anType)
+	// TODO att time stame
+	ue.GmmLog.Infoln("after AMPolicyControlCreate", time.Now().UnixNano())
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("AM Policy Control Create Failed Problem[%+v]", problemDetails)
 		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")

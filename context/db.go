@@ -134,7 +134,7 @@ func StoreContextInDB(ue *AmfUe) {
 	if self.EnableDbStore {
 		amfUeBsonA := ToBsonM(ue)
 		filter := bson.M{"supi": ue.Supi}
-
+		// TODOBIlal run with go routine
 		MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
 	}
 }
