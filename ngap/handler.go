@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/omec-project/amf/consumer"
 	"github.com/omec-project/amf/context"
@@ -1357,6 +1358,7 @@ func HandleLocationReportingFailureIndication(ran *context.AmfRan, message *ngap
 func HandleInitialUEMessage(ran *context.AmfRan, message *ngapType.NGAPPDU, sctplbMsg *sdcoreAmfServer.SctplbMessage) {
 	amfSelf := context.AMF_Self()
 
+	amfSelf.GmmLog.Infoln("HandleInitialUEMessage ", time.Now().UnixNano())
 	var rANUENGAPID *ngapType.RANUENGAPID
 	var nASPDU *ngapType.NASPDU
 	var userLocationInformation *ngapType.UserLocationInformation
