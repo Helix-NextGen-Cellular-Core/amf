@@ -29,7 +29,7 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 		for {
 			select {
 			case msg1 := <-Amf2RanMsgChan:
-				log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
+				// log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
 				if err := srv.Send(msg1); err != nil {
 					log.Println("Error in sending response")
 				}
@@ -43,13 +43,13 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 			log.Println("Error in SCTPLB stream ", err)
 			break
 		} else {
-			log.Printf("Receive message body from client (%s): GnbIp: %v, GnbId: %v, Verbose - %s, MsgType %v ", req.SctplbId, req.GnbIpAddr, req.GnbId, req.VerboseMsg, req.Msgtype)
+			// log.Printf("Receive message body from client (%s): GnbIp: %v, GnbId: %v, Verbose - %s, MsgType %v ", req.SctplbId, req.GnbIpAddr, req.GnbId, req.VerboseMsg, req.Msgtype)
 			if req.Msgtype == sdcoreAmfServer.MsgType_INIT_MSG {
 				rsp := &sdcoreAmfServer.AmfMessage{}
 				rsp.VerboseMsg = "Hello From AMF Pod !"
 				rsp.Msgtype = sdcoreAmfServer.MsgType_INIT_MSG
 				rsp.AmfId = os.Getenv("HOSTNAME")
-				log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v ", rsp.AmfId, rsp.VerboseMsg, rsp.Msgtype)
+				// log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v ", rsp.AmfId, rsp.VerboseMsg, rsp.Msgtype)
 				amfSelf := context.AMF_Self()
 				var ran *context.AmfRan
 				var ok bool

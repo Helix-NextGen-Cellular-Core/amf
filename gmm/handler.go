@@ -360,8 +360,11 @@ func forward5GSMMessageToSMF(
 
 // Handle cleartext IEs of Registration Request, which cleattext IEs defined in TS 24.501 4.4.6
 func HandleRegistrationRequest(ue *context.AmfUe, anType models.AccessType, procedureCode int64,
-	ue.GmmLog.Infoln("Registration %+v start", time.Now().UnixNano())
 	registrationRequest *nasMessage.RegistrationRequest) error {
+
+	// ue.GmmLog.Infoln("Registration %+v start", time.Now().UnixNano())
+	// ranUeNgapIDVal := ue.RanUe[models.AccessType__3_GPP_ACCESS].RanUeNgapId
+	// ue.GmmLog.Infoln(" Handle_Registration_Request ", time.Now().UnixNano(), " rANUENGAPID ", ranUeNgapIDVal)
 	var guamiFromUeGuti models.Guami
 	amfSelf := context.AMF_Self()
 
@@ -369,7 +372,7 @@ func HandleRegistrationRequest(ue *context.AmfUe, anType models.AccessType, proc
 		return fmt.Errorf("AmfUe is nil")
 	}
 
-	ue.GmmLog.Info("Handle Registration Request")
+	// ue.GmmLog.Info("Handle Registration Request")
 
 	if ue.RanUe[anType] == nil {
 		return fmt.Errorf("RanUe is nil")
@@ -559,7 +562,7 @@ func IdentityVerification(ue *context.AmfUe) bool {
 }
 
 func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) error {
-	ue.GmmLog.Infoln("Handle InitialRegistration", time.Now().UnixNano())
+	// ue.GmmLog.Infoln("Handle InitialRegistration", time.Now().UnixNano())
 	amfSelf := context.AMF_Self()
 
 	ue.ClearRegistrationData()
@@ -633,7 +636,8 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 	// N5g-eir_EquipmentIdentityCheck_Get service operation
 
 	// TODO att time stame
-	ue.GmmLog.Infoln("before  communicateWithUDM", time.Now().UnixNano())
+	// ue.GmmLog.Infoln("before  communicateWithUDM", time.Now().UnixNano())
+	startTime := time.Now().UnixNano()
 	if ue.ServingAmfChanged || ue.State[models.AccessType_NON_3_GPP_ACCESS].Is(context.Registered) ||
 		!ue.SubscriptionDataValid {
 		if err := communicateWithUDM(ue, anType); err != nil {
@@ -641,13 +645,16 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 		}
 	}
 
+	end_time := time.Now().UnixNano()
+	ue.GmmLog.Infoln("communicateWithUDM took: ", (end_time - startTime))
+
 	param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{
 		Supi: optional.NewString(ue.Supi),
 	}
 	for {
-		ue.GmmLog.Infoln("before SendSearchNFInstances", time.Now().UnixNano())
+		// ue.GmmLog.Infoln("before SendSearchNFInstances", time.Now().UnixNano())
 		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_PCF, models.NfType_AMF, &param)
-		ue.GmmLog.Infoln("after SendSearchNFInstances", time.Now().UnixNano())
+		// ue.GmmLog.Infoln("after SendSearchNFInstances", time.Now().UnixNano())
 		if err != nil {
 			ue.GmmLog.Error("AMF can not select an PCF by NRF")
 		} else {
@@ -669,11 +676,11 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 		}
 		time.Sleep(500 * time.Millisecond) // sleep a while when search NF Instance fail
 	}
-	ue.GmmLog.Infoln("before AMPolicyControlCreate", time.Now().UnixNano())
+	// ue.GmmLog.Infoln("before AMPolicyControlCreate", time.Now().UnixNano())
 	// TODO att time stame
 	problemDetails, err := consumer.AMPolicyControlCreate(ue, anType)
 	// TODO att time stame
-	ue.GmmLog.Infoln("after AMPolicyControlCreate", time.Now().UnixNano())
+	// ue.GmmLog.Infoln("after AMPolicyControlCreate", time.Now().UnixNano())
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("AM Policy Control Create Failed Problem[%+v]", problemDetails)
 		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
@@ -1107,54 +1114,72 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{
 		Supi: optional.NewString(ue.Supi),
 	}
+
+	st := time.Now().UnixNano()
 	resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_UDM, models.NfType_AMF, &param)
 	if err != nil {
 		return fmt.Errorf("AMF can not select an UDM by NRF")
 	}
+	ue.GmmLog.Infoln("communicateWithUDM: SendSearchNFInstances took: ", time.Now().UnixNano()-st)
 
 	var uecmUri, sdmUri string
+	st = time.Now().UnixNano()
 	for _, nfProfile := range resp.NfInstances {
 		ue.UdmId = nfProfile.NfInstanceId
+		// ue.GmmLog.Infoln("communicateWithUDM: before  SearchNFServiceUri", time.Now().UnixNano())
 		uecmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
+		// ue.GmmLog.Infoln("communicateWithUDM: after  SearchNFServiceUri uec ", time.Now().UnixNano())
 		sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
+		// ue.GmmLog.Infoln("communicateWithUDM: after  SearchNFServiceUrisdm ", time.Now().UnixNano())
 		if uecmUri != "" && sdmUri != "" {
 			break
 		}
 	}
+	ue.GmmLog.Infoln("communicateWithUDM: resp.NfInstances loop took ", time.Now().UnixNano()-st)
+
 	ue.NudmUECMUri = uecmUri
 	ue.NudmSDMUri = sdmUri
 	if ue.NudmUECMUri == "" || ue.NudmSDMUri == "" {
 		return fmt.Errorf("AMF can not select an UDM by NRF")
 	}
 
+	st = time.Now().UnixNano()
 	problemDetails, err := consumer.UeCmRegistration(ue, accessType, true)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("UECM_Registration Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		ue.GmmLog.Errorf("UECM_Registration Error[%+v]", err)
 	}
+	ue.GmmLog.Infoln("communicateWithUDM: UeCmRegistration took ", time.Now().UnixNano()-st)
 
+	st = time.Now().UnixNano()
 	problemDetails, err = consumer.SDMGetAmData(ue)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("SDM_Get AmData Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		return fmt.Errorf("SDM_Get AmData Error[%+v]", err)
 	}
+	ue.GmmLog.Infoln("communicateWithUDM: SDMGetAmData took: ", time.Now().UnixNano()-st)
 
+	st = time.Now().UnixNano()
 	problemDetails, err = consumer.SDMGetSmfSelectData(ue)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("SDM_Get SmfSelectData Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		return fmt.Errorf("SDM_Get SmfSelectData Error[%+v]", err)
 	}
+	ue.GmmLog.Infoln("communicateWithUDM: SDMGetSmfSelectData took ", time.Now().UnixNano()-st)
 
+	st = time.Now().UnixNano()
 	problemDetails, err = consumer.SDMGetUeContextInSmfData(ue)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("SDM_Get UeContextInSmfData Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		return fmt.Errorf("SDM_Get UeContextInSmfData Error[%+v]", err)
 	}
+	ue.GmmLog.Infoln("communicateWithUDM: after  SDMGetUeContextInSmfData ", time.Now().UnixNano())
 
+	st = time.Now().UnixNano()
 	problemDetails, err = consumer.SDMSubscribe(ue)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("SDM Subscribe Failed Problem[%+v]", problemDetails)
@@ -1162,6 +1187,8 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 		ue.GmmLog.Errorf("SDM Subscribe Error[%+v]", err)
 		return fmt.Errorf("SDM Subscribe Error[%+v]", err)
 	}
+	ue.GmmLog.Infoln("communicateWithUDM: SDMSubscribe took ", time.Now().UnixNano()-st)
+
 	ue.SubscriptionDataValid = true
 	return nil
 }
@@ -1494,7 +1521,7 @@ func HandleConfigurationUpdateComplete(ue *context.AmfUe,
 }
 
 func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (bool, error) {
-	ue.GmmLog.Info("Authentication procedure")
+	// ue.GmmLog.Info("Authentication procedure")
 
 	// Check whether UE has SUCI and SUPI
 	if IdentityVerification(ue) {
@@ -2036,7 +2063,7 @@ func sendServiceAccept(ue *context.AmfUe, anType models.AccessType, ctxList ngap
 // TS 24.501 5.4.1
 func HandleAuthenticationResponse(ue *context.AmfUe, accessType models.AccessType,
 	authenticationResponse *nasMessage.AuthenticationResponse) error {
-	ue.GmmLog.Info("Handle Authentication Response")
+	// ue.GmmLog.Info("Handle Authentication Response")
 
 	if ue.T3560 != nil {
 		ue.T3560.Stop()
@@ -2236,7 +2263,7 @@ func HandleAuthenticationFailure(ue *context.AmfUe, anType models.AccessType,
 
 func HandleRegistrationComplete(ue *context.AmfUe, accessType models.AccessType,
 	registrationComplete *nasMessage.RegistrationComplete) error {
-	ue.GmmLog.Info("Handle Registration Complete")
+	// ue.GmmLog.Info("Handle Registration Complete")
 
 	if ue.T3550 != nil {
 		ue.T3550.Stop()
@@ -2268,7 +2295,7 @@ func HandleRegistrationComplete(ue *context.AmfUe, accessType models.AccessType,
 // TS 33.501 6.7.2
 func HandleSecurityModeComplete(ue *context.AmfUe, anType models.AccessType, procedureCode int64,
 	securityModeComplete *nasMessage.SecurityModeComplete) error {
-	ue.GmmLog.Info("Handle Security Mode Complete")
+	// ue.GmmLog.Info("Handle Security Mode Complete")
 
 	if ue.MacFailed {
 		return fmt.Errorf("NAS message integrity check failed")

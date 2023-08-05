@@ -26,7 +26,7 @@ import (
 )
 
 func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage) {
-	fmt.Printf("DispatchLb GnbId:%v GnbIp: %v %T", sctplbMsg.GnbId, sctplbMsg.GnbIpAddr, Amf2RanMsgChan)
+	// fmt.Printf("DispatchLb GnbId:%v GnbIp: %v %T\n", sctplbMsg.GnbId, sctplbMsg.GnbIpAddr, Amf2RanMsgChan)
 	var ran *context.AmfRan
 	amfSelf := context.AMF_Self()
 
@@ -37,16 +37,16 @@ func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *s
 			logger.NgapLog.Infof("Create a new NG connection for: %s", sctplbMsg.GnbId)
 			ran = amfSelf.NewAmfRanId(sctplbMsg.GnbId)
 			ran.Amf2RanMsgChan = Amf2RanMsgChan
-			fmt.Println("DispatchLb, Create new Amf RAN ", sctplbMsg.GnbId)
+			// fmt.Println("DispatchLb, Create new Amf RAN ", sctplbMsg.GnbId)
 		}
 	} else if sctplbMsg.GnbIpAddr != "" {
-		fmt.Printf("GnbIpAddress received but no GnbId")
+		fmt.Printf("GnbIpAddress received but no GnbId\n")
 		ran = &context.AmfRan{}
 		ran.SupportedTAList = context.NewSupportedTAIList()
 		ran.Amf2RanMsgChan = Amf2RanMsgChan
 		ran.Log = logger.NgapLog.WithField(logger.FieldRanAddr, sctplbMsg.GnbIpAddr)
 		ran.GnbIp = sctplbMsg.GnbIpAddr
-		fmt.Println("DispatchLb, Create new Amf RAN with GnbIpAddress ", sctplbMsg.GnbIpAddr)
+		// fmt.Println("DispatchLb, Create new Amf RAN with GnbIpAddress ", sctplbMsg.GnbIpAddr)
 	}
 
 	if len(sctplbMsg.Msg) == 0 {
@@ -75,7 +75,7 @@ func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *s
 			rsp.Msgtype = sdcoreAmfServer.MsgType_REDIRECT_MSG
 			rsp.AmfId = os.Getenv("HOSTNAME")
 			/* TODO set only pod name, for this release setting pod ip to simplify logic in sctplb */
-			fmt.Printf("DispatchLb, amfNgapId: %v is not for this amf instance, rediret to amf instance: %v %v", ngapId.Value, id.PodName, id.PodIp)
+			fmt.Printf("DispatchLb, amfNgapId: %v is not for this amf instance, rediret to amf instance: %v %v\n", ngapId.Value, id.PodName, id.PodIp)
 			rsp.RedirectId = id.PodIp
 			rsp.GnbId = ran.GnbId
 			rsp.Msg = make([]byte, len(sctplbMsg.Msg))
@@ -90,10 +90,11 @@ func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *s
 			}
 			return
 		} else {
-			fmt.Printf("DispatchLb, amfNgapId: %v for this amf instance", ngapId.Value)
+			// fmt.Printf("DispatchLb, amfNgapId: %v for this amf instance\n", ngapId.Value)
 		}
 	}
 
+	// ran.Log.Infof("ranUe: %v ", ranUe)
 	/* uecontext is found, submit the message to transaction queue*/
 	if ranUe != nil && ranUe.AmfUe != nil {
 		ranUe.AmfUe.SetEventChannel(NgapMsgHandler)

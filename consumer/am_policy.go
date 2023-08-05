@@ -44,9 +44,9 @@ func AMPolicyControlCreate(ue *amf_context.AmfUe, anType models.AccessType) (*mo
 	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
 	defer cancel()
 	// TODO att time stame
-	ue.GmmLog.Infoln("AMPolicyControlCreate: before PoliciesPost", time.Now().UnixNano())
+	// ue.GmmLog.Infoln("AMPolicyControlCreate: before PoliciesPost", time.Now().UnixNano())
 	res, httpResp, localErr := client.DefaultApi.PoliciesPost(ctx, policyAssociationRequest)
-	ue.GmmLog.Infoln("AMPolicyControlCreate: after PoliciesPost", time.Now().UnixNano())
+	// ue.GmmLog.Infoln("AMPolicyControlCreate: after PoliciesPost", time.Now().UnixNano())
 	if localErr == nil {
 		locationHeader := httpResp.Header.Get("Location")
 		logger.ConsumerLog.Debugf("location header: %+v", locationHeader)
