@@ -8,7 +8,9 @@ package consumer
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"net/http"
+	"sort"
 
 	nrf_cache "github.com/omec-project/nrf/nrfcache"
 
@@ -77,8 +79,28 @@ func SearchUdmSdmInstance(ue *amf_context.AmfUe, nrfUri string, targetNfType, re
 	}
 
 	// select the first UDM_SDM, TODO: select base on other info
+	nfInstanceIds := make([]string, 0, len(resp.NfInstances))
+	for _, nfProfile := range resp.NfInstances {
+		nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+	}
+	sort.Strings(nfInstanceIds)
+	nfInstanceIdIndexMap := make(map[string]int)
+	for index, value := range nfInstanceIds {
+		nfInstanceIdIndexMap[value] = index
+	}
+
+	nfInstanceIndex := 0
+	if amf_context.AMF_Self().EnableScaling == true {
+		h := fnv.New32a()
+		h.Write([]byte(ue.Suci))
+		key := int(h.Sum32())
+		nfInstanceIndex = int(key % len(resp.NfInstances))
+	}
 	var sdmUri string
 	for _, nfProfile := range resp.NfInstances {
+		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+			continue
+		}
 		ue.UdmId = nfProfile.NfInstanceId
 		sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
 		if sdmUri != "" {

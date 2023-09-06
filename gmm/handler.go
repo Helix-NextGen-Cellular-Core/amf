@@ -12,7 +12,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -669,8 +671,28 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 			ue.GmmLog.Error("AMF can not select an PCF by NRF")
 		} else {
 			// select the first PCF, TODO: select base on other info
+			nfInstanceIds := make([]string, 0, len(resp.NfInstances))
+			for _, nfProfile := range resp.NfInstances {
+				nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+			}
+			sort.Strings(nfInstanceIds)
+			nfInstanceIdIndexMap := make(map[string]int)
+			for index, value := range nfInstanceIds {
+				nfInstanceIdIndexMap[value] = index
+			}
+
+			nfInstanceIndex := 0
+			if amfSelf.EnableScaling == true {
+				h := fnv.New32a()
+				h.Write([]byte(ue.Suci))
+				key := int(h.Sum32())
+				nfInstanceIndex = int(key % len(resp.NfInstances))
+			}
 			var pcfUri string
 			for _, nfProfile := range resp.NfInstances {
+				if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+					continue
+				}
 				pcfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NPCF_AM_POLICY_CONTROL,
 					models.NfServiceStatus_REGISTERED)
 				if pcfUri != "" {
@@ -1131,10 +1153,29 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 		return fmt.Errorf("AMF can not select an UDM by NRF")
 	}
 	ue.GmmLog.Infoln("communicateWithUDM: SendSearchNFInstances took: ", time.Now().UnixNano()-st)
+	nfInstanceIds := make([]string, 0, len(resp.NfInstances))
+	for _, nfProfile := range resp.NfInstances {
+		nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+	}
+	sort.Strings(nfInstanceIds)
+	nfInstanceIdIndexMap := make(map[string]int)
+	for index, value := range nfInstanceIds {
+		nfInstanceIdIndexMap[value] = index
+	}
 
+	nfInstanceIndex := 0
+	if amfSelf.EnableScaling == true {
+		h := fnv.New32a()
+		h.Write([]byte(ue.Suci))
+		key := int(h.Sum32())
+		nfInstanceIndex = int(key % len(resp.NfInstances))
+	}
 	var uecmUri, sdmUri string
 	st = time.Now().UnixNano()
 	for _, nfProfile := range resp.NfInstances {
+		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+			continue
+		}
 		ue.UdmId = nfProfile.NfInstanceId
 		// ue.GmmLog.Infoln("communicateWithUDM: before  SearchNFServiceUri", time.Now().UnixNano())
 		uecmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
@@ -1557,8 +1598,28 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 	}
 
 	// select the first AUSF, TODO: select base on other info
+	nfInstanceIds := make([]string, 0, len(resp.NfInstances))
+	for _, nfProfile := range resp.NfInstances {
+		nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+	}
+	sort.Strings(nfInstanceIds)
+	nfInstanceIdIndexMap := make(map[string]int)
+	for index, value := range nfInstanceIds {
+		nfInstanceIdIndexMap[value] = index
+	}
+
+	nfInstanceIndex := 0
+	if amfSelf.EnableScaling == true {
+		h := fnv.New32a()
+		h.Write([]byte(ue.Suci))
+		key := int(h.Sum32())
+		nfInstanceIndex = int(key % len(resp.NfInstances))
+	}
 	var ausfUri string
 	for _, nfProfile := range resp.NfInstances {
+		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+			continue
+		}
 		ue.AusfId = nfProfile.NfInstanceId
 		ausfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NAUSF_AUTH, models.NfServiceStatus_REGISTERED)
 		if ausfUri != "" {
