@@ -92,7 +92,7 @@ func SearchUdmSdmInstance(ue *amf_context.AmfUe, nrfUri string, targetNfType, re
 	nfInstanceIndex := 0
 	if amf_context.AMF_Self().EnableScaling == true {
 		h := fnv.New32a()
-		h.Write([]byte(ue.Suci))
+		h.Write([]byte(ue.Supi))
 		key := int(h.Sum32())
 		nfInstanceIndex = int(key % len(resp.NfInstances))
 	}
