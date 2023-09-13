@@ -9,10 +9,8 @@ package consumer
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"net/url"
 	"os"
-	"sort"
 	"strconv"
 	"time"
 
@@ -159,40 +157,12 @@ func SelectSmf(
 
 	// select the first SMF, TODO: select base on other info
 	smContext.SmfProfiles = result.NfInstances
-
-	nfInstanceIds := make([]string, 0, len(result.NfInstances))
-	for _, nfProfile := range result.NfInstances {
-		nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
-	}
-	sort.Strings(nfInstanceIds)
-	nfInstanceIdIndexMap := make(map[string]int)
-	for index, value := range nfInstanceIds {
-		nfInstanceIdIndexMap[value] = index
-	}
-
-	nfInstanceIndex := 0
-	if amf_context.AMF_Self().EnableScaling == true {
-		h := fnv.New32a()
-		h.Write([]byte(ue.Supi))
-		key := int(h.Sum32())
-		nfInstanceIndex = int(key % len(result.NfInstances))
-	}
-
-	for _, nfProfile := range result.NfInstances {
-		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
-			continue
-		}
-		smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
-		smContext.SetSmfID(nfProfile.NfInstanceId)
-		smContext.SetSmfUri(smfUri)
-		break
-	}
-	// smfNum := len(result.NfInstances)
-	// servingSmfIndex := getServingSmfIndex(smfNum)
-	// nfProfile := result.NfInstances[servingSmfIndex]
-	// smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
-	// smContext.SetSmfID(nfProfile.NfInstanceId)
-	// smContext.SetSmfUri(smfUri)
+	smfNum := len(result.NfInstances)
+	servingSmfIndex := getServingSmfIndex(smfNum)
+	nfProfile := result.NfInstances[servingSmfIndex]
+	smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
+	smContext.SetSmfID(nfProfile.NfInstanceId)
+	smContext.SetSmfUri(smfUri)
 	return smContext, 0, nil
 }
 
