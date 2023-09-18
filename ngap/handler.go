@@ -9,7 +9,6 @@ package ngap
 
 import (
 	"encoding/hex"
-	"os"
 	"strconv"
 
 	"github.com/omec-project/amf/consumer"
@@ -1521,26 +1520,28 @@ func HandleInitialUEMessage(ran *context.AmfRan, message *ngapType.NGAPPDU, sctp
 				ranUe.Log.Warnf("Unknown UE [GUTI: %s]", guti)
 			} else {
 				ranUe.Log.Tracef("find AmfUe [GUTI: %s]", guti)
-				/* checking the guti-ue belongs to this amf instance */
-				id, _ := amfSelf.Drsm.FindOwnerInt32ID(int32(amfUe.Tmsi))
-				if id != nil && id.PodName != os.Getenv("HOSTNAME") && amfSelf.EnableSctpLb {
-					rsp := &sdcoreAmfServer.AmfMessage{}
-					rsp.VerboseMsg = "Redirect Msg From AMF Pod !"
-					rsp.Msgtype = sdcoreAmfServer.MsgType_REDIRECT_MSG
-					rsp.AmfId = os.Getenv("HOSTNAME")
-					/* TODO for this release setting pod ip to simplify logic in sctplb */
-					rsp.RedirectId = id.PodIp
-					rsp.GnbId = ran.GnbId
-					rsp.Msg = sctplbMsg.Msg
-					if ranUe != nil && ranUe.AmfUe != nil {
-						ranUe.AmfUe.Remove()
-					} else if ranUe != nil {
-						ranUe.Remove()
+				//Iftekhar: Disabling DRSM check
+				/*
+					// checking the guti-ue belongs to this amf instance
+					id, _ := amfSelf.Drsm.FindOwnerInt32ID(int32(amfUe.Tmsi))
+					if id != nil && id.PodName != os.Getenv("HOSTNAME") && (amfSelf.EnableSctpLb == false) {
+						rsp := &sdcoreAmfServer.AmfMessage{}
+						rsp.VerboseMsg = "Redirect Msg From AMF Pod !"
+						rsp.Msgtype = sdcoreAmfServer.MsgType_REDIRECT_MSG
+						rsp.AmfId = os.Getenv("HOSTNAME")
+						// TODO for this release setting pod ip to simplify logic in sctplb
+						rsp.RedirectId = id.PodIp
+						rsp.GnbId = ran.GnbId
+						rsp.Msg = sctplbMsg.Msg
+						if ranUe != nil && ranUe.AmfUe != nil {
+							ranUe.AmfUe.Remove()
+						} else if ranUe != nil {
+							ranUe.Remove()
+						}
+						ran.Amf2RanMsgChan <- rsp
+						return
 					}
-					ran.Amf2RanMsgChan <- rsp
-					return
-				}
-
+				*/
 				if amfUe.CmConnect(ran.AnType) {
 					ranUe.Log.Debug("Implicit Deregistration")
 					ranUe.Log.Tracef("RanUeNgapID[%d]", amfUe.RanUe[ran.AnType].RanUeNgapId)
