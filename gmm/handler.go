@@ -1166,7 +1166,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	nfInstanceIndex := 0
 	if amfSelf.EnableScaling == true {
 		h := fnv.New32a()
-		h.Write([]byte(amfSelf.NfId))
+		h.Write([]byte(ue.Supi))
 		key := int(h.Sum32())
 		nfInstanceIndex = int(key % len(resp.NfInstances))
 	}
