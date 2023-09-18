@@ -30,7 +30,7 @@ var (
 	//tmsiGenerator                    *idgenerator.IDGenerator = nil
 	//amfUeNGAPIDGenerator             *idgenerator.IDGenerator = nil
 	//amfStatusSubscriptionIDGenerator *idgenerator.IDGenerator = nil
-	mutex sync.Mutex
+	mutex sync.RWMutex
 )
 
 func init() {
@@ -147,7 +147,7 @@ func (context *AMFContext) AllocateGutiToUe(ue *AmfUe) {
 func (context *AMFContext) ReAllocateGutiToUe(ue *AmfUe) {
 	servedGuami := context.ServedGuamiList[0]
 
-	context.Drsm.ReleaseInt32ID(ue.Tmsi)
+	go context.Drsm.ReleaseInt32ID(ue.Tmsi)
 	//tmsiGenerator.FreeID(int64(ue.Tmsi))
 
 	ue.Tmsi = context.TmsiAllocate()
@@ -210,7 +210,7 @@ func (context *AMFContext) DeleteAMFStatusSubscription(subscriptionID string) {
 		logger.ContextLog.Error(err)
 	} else {
 		//amfStatusSubscriptionIDGenerator.FreeID(id)
-		context.Drsm.ReleaseInt32ID(int32(id))
+		go context.Drsm.ReleaseInt32ID(int32(id))
 	}
 }
 

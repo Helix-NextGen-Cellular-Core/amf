@@ -107,7 +107,7 @@ func (ranUe *RanUe) Remove() error {
 	self := AMF_Self()
 	self.RanUePool.Delete(ranUe.AmfUeNgapId)
 	//amfUeNGAPIDGenerator.FreeID(ranUe.AmfUeNgapId)
-	self.Drsm.ReleaseInt32ID(int32(ranUe.AmfUeNgapId))
+	go self.Drsm.ReleaseInt32ID(int32(ranUe.AmfUeNgapId))
 	return nil
 }
 

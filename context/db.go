@@ -135,7 +135,7 @@ func StoreContextInDB(ue *AmfUe) {
 		amfUeBsonA := ToBsonM(ue)
 		filter := bson.M{"supi": ue.Supi}
 		// TODOBIlal run with go routine
-		MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
+		go MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
 	}
 }
 
