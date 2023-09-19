@@ -92,6 +92,7 @@ type AMFContext struct {
 	EnableNrfCaching         bool
 	NrfCacheEvictionInterval time.Duration
 	EnableScaling            bool
+	DisableDRSM              bool
 }
 
 type AMFContextEventSubscription struct {

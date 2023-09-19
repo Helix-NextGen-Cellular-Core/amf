@@ -84,6 +84,7 @@ type Configuration struct {
 	KafkaInfo                KafkaInfo               `yaml:"kafkaInfo,omitempty"`
 	DebugProfilePort         int                     `yaml:"debugProfilePort,omitempty"`
 	EnableScaling            bool                    `yaml:"enableScaling,omitempty"`
+	DisableDRSM              bool                    `yaml:"disableDRSM,omitempty"`
 }
 
 func (c *Configuration) Get5gsNwFeatSuppEnable() bool {

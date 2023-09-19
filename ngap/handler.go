@@ -9,6 +9,7 @@ package ngap
 
 import (
 	"encoding/hex"
+	"os"
 	"strconv"
 
 	"github.com/omec-project/amf/consumer"
@@ -1520,8 +1521,7 @@ func HandleInitialUEMessage(ran *context.AmfRan, message *ngapType.NGAPPDU, sctp
 				ranUe.Log.Warnf("Unknown UE [GUTI: %s]", guti)
 			} else {
 				ranUe.Log.Tracef("find AmfUe [GUTI: %s]", guti)
-				//Iftekhar: Disabling DRSM check
-				/*
+				if !amfSelf.DisableDRSM {
 					// checking the guti-ue belongs to this amf instance
 					id, _ := amfSelf.Drsm.FindOwnerInt32ID(int32(amfUe.Tmsi))
 					if id != nil && id.PodName != os.Getenv("HOSTNAME") && (amfSelf.EnableSctpLb == false) {
@@ -1541,7 +1541,7 @@ func HandleInitialUEMessage(ran *context.AmfRan, message *ngapType.NGAPPDU, sctp
 						ran.Amf2RanMsgChan <- rsp
 						return
 					}
-				*/
+				}
 				if amfUe.CmConnect(ran.AnType) {
 					ranUe.Log.Debug("Implicit Deregistration")
 					ranUe.Log.Tracef("RanUeNgapID[%d]", amfUe.RanUe[ran.AnType].RanUeNgapId)

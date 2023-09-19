@@ -7,9 +7,12 @@
 package nas
 
 import (
+	"os"
+
 	"github.com/omec-project/amf/context"
 	"github.com/omec-project/amf/logger"
 	"github.com/omec-project/amf/nas/nas_security"
+	"github.com/omec-project/amf/protos/sdcoreAmfServer"
 	"github.com/omec-project/openapi/models"
 )
 
@@ -31,29 +34,27 @@ func HandleNAS(ue *context.RanUe, procedureCode int64, nasPdu []byte) {
 		if ue.AmfUe == nil {
 			ue.AmfUe = amfSelf.NewAmfUe("")
 		} else {
-			//IA: Disabling DRSM check
-			/*
-				if amfSelf.EnableSctpLb {
-					// checking the guti-ue belongs to this amf instance
-					id, _ := amfSelf.Drsm.FindOwnerInt32ID(int32(ue.AmfUe.Tmsi))
-					if id != nil && id.PodName != os.Getenv("HOSTNAME") {
-						rsp := &sdcoreAmfServer.AmfMessage{}
-						rsp.VerboseMsg = "Redirecting Msg From AMF Pod !"
-						rsp.Msgtype = sdcoreAmfServer.MsgType_REDIRECT_MSG
-						rsp.AmfId = os.Getenv("HOSTNAME")
-						// TODO for this release setting pod ip to simplify logic in sctplb
-						rsp.RedirectId = id.PodIp
-						rsp.GnbId = ue.Ran.GnbId
-						rsp.Msg = ue.SctplbMsg
-						if ue != nil && ue.AmfUe != nil {
-							ue.AmfUe.Remove()
-						} else if ue != nil {
-							ue.Remove()
-						}
-						ue.Ran.Amf2RanMsgChan <- rsp
-						return
+			if amfSelf.EnableSctpLb && !amfSelf.DisableDRSM {
+				// checking the guti-ue belongs to this amf instance
+				id, _ := amfSelf.Drsm.FindOwnerInt32ID(int32(ue.AmfUe.Tmsi))
+				if id != nil && id.PodName != os.Getenv("HOSTNAME") {
+					rsp := &sdcoreAmfServer.AmfMessage{}
+					rsp.VerboseMsg = "Redirecting Msg From AMF Pod !"
+					rsp.Msgtype = sdcoreAmfServer.MsgType_REDIRECT_MSG
+					rsp.AmfId = os.Getenv("HOSTNAME")
+					// TODO for this release setting pod ip to simplify logic in sctplb
+					rsp.RedirectId = id.PodIp
+					rsp.GnbId = ue.Ran.GnbId
+					rsp.Msg = ue.SctplbMsg
+					if ue != nil && ue.AmfUe != nil {
+						ue.AmfUe.Remove()
+					} else if ue != nil {
+						ue.Remove()
 					}
-				}*/
+					ue.Ran.Amf2RanMsgChan <- rsp
+					return
+				}
+			}
 		}
 
 		ue.AmfUe.Mutex.Lock()
