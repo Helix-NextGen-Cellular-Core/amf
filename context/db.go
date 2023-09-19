@@ -80,7 +80,7 @@ func SetupAmfCollection() {
 		AmfUeDataColl = Namespace + "." + AmfUeDataColl
 	}
 	for {
-		MongoDBLibrary.SetMongoDB(factory.AmfConfig.Configuration.AmfDBName, mongoDbUrl)
+		MongoDBLibrary.SetMongoDBWithPoolSize(factory.AmfConfig.Configuration.AmfDBName, mongoDbUrl, 1, 10)
 		if MongoDBLibrary.Client == nil {
 			logger.ContextLog.Errorf("MongoDb Connection failed")
 		} else {
