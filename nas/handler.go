@@ -34,15 +34,15 @@ func HandleNAS(ue *context.RanUe, procedureCode int64, nasPdu []byte) {
 		if ue.AmfUe == nil {
 			ue.AmfUe = amfSelf.NewAmfUe("")
 		} else {
-			if amfSelf.EnableSctpLb {
-				/* checking the guti-ue belongs to this amf instance */
+			if amfSelf.EnableSctpLb && !amfSelf.DisableDRSM {
+				// checking the guti-ue belongs to this amf instance
 				id, _ := amfSelf.Drsm.FindOwnerInt32ID(int32(ue.AmfUe.Tmsi))
 				if id != nil && id.PodName != os.Getenv("HOSTNAME") {
 					rsp := &sdcoreAmfServer.AmfMessage{}
 					rsp.VerboseMsg = "Redirecting Msg From AMF Pod !"
 					rsp.Msgtype = sdcoreAmfServer.MsgType_REDIRECT_MSG
 					rsp.AmfId = os.Getenv("HOSTNAME")
-					/* TODO for this release setting pod ip to simplify logic in sctplb */
+					// TODO for this release setting pod ip to simplify logic in sctplb
 					rsp.RedirectId = id.PodIp
 					rsp.GnbId = ue.Ran.GnbId
 					rsp.Msg = ue.SctplbMsg

@@ -64,7 +64,7 @@ func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *s
 	}
 
 	ranUe, ngapId := FetchRanUeContext(ran, pdu)
-	if ngapId != nil {
+	if ngapId != nil && !amfSelf.DisableDRSM {
 		//ranUe.Log.Debugln("RanUe RanNgapId AmfNgapId: ", ranUe.RanUeNgapId, ranUe.AmfUeNgapId)
 		/* checking whether same AMF instance can handle this message */
 		/* redirect it to correct owner if required */
