@@ -3,8 +3,9 @@ module github.com/omec-project/amf
 go 1.18
 
 replace github.com/omec-project/nrf => ../nrf
-// replace github.com/omec-project/util => ../util 
+
 replace github.com/omec-project/MongoDBLibrary => ../mongodblibrary
+
 replace github.com/omec-project/util => ../util
 
 require (
