@@ -1611,7 +1611,7 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 	nfInstanceIndex := 0
 	if amfSelf.EnableScaling == true {
 		h := fnv.New32a()
-		h.Write([]byte(ue.Supi))
+		h.Write([]byte(ue.Suci))
 		key := int(h.Sum32())
 		nfInstanceIndex = int(key % len(resp.NfInstances))
 	}
