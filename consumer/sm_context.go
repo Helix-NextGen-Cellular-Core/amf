@@ -12,6 +12,7 @@ import (
 	"hash/fnv"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -162,19 +163,41 @@ func SelectSmf(
 
 	// select the first SMF, TODO: select base on other info
 	smContext.SmfProfiles = result.NfInstances
-	// smfNum := len(result.NfInstances)
-	// servingSmfIndex := getServingSmfIndex(smfNum)
-	servingSmfIndex := 0
-	if amf_context.AMF_Self().EnableScaling {
+	//smfNum := len(result.NfInstances)
+	//servingSmfIndex := getServingSmfIndex(smfNum)
+	//nfProfile := result.NfInstances[servingSmfIndex]
+	//smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
+	//smContext.SetSmfID(nfProfile.NfInstanceId)
+	//smContext.SetSmfUri(smfUri)
+
+	nfInstanceIds := make([]string, 0, len(result.NfInstances))
+	for _, nfProfile := range result.NfInstances {
+		nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+	}
+	sort.Strings(nfInstanceIds)
+	nfInstanceIdIndexMap := make(map[string]int)
+	for index, value := range nfInstanceIds {
+		nfInstanceIdIndexMap[value] = index
+	}
+
+	nfInstanceIndex := 0
+	if amf_context.AMF_Self().EnableScaling == true {
 		h := fnv.New32a()
 		h.Write([]byte(ue.Supi))
 		key := int(h.Sum32())
-		servingSmfIndex = int(key % len(result.NfInstances))
+		nfInstanceIndex = int(key % len(result.NfInstances))
 	}
-	nfProfile := result.NfInstances[servingSmfIndex]
-	smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
-	smContext.SetSmfID(nfProfile.NfInstanceId)
-	smContext.SetSmfUri(smfUri)
+
+	for _, nfProfile := range result.NfInstances {
+		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+			continue
+		}
+		smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
+		smContext.SetSmfID(nfProfile.NfInstanceId)
+		smContext.SetSmfUri(smfUri)
+		break
+	}
+
 	return smContext, 0, nil
 }
 
