@@ -9,6 +9,7 @@ package consumer
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"net/url"
 	"os"
 	"strconv"
@@ -86,6 +87,10 @@ func SelectSmf(
 	snssai models.Snssai,
 	dnn string) (*amf_context.SmContext, uint8, error) {
 	var smfUri string
+	st := time.Now().UnixNano()
+	defer func() {
+		ue.GmmLog.Infof("SelectSmf took", time.Now().UnixNano()-st)
+	}()
 
 	ue.GmmLog.Infof("Select SMF [snssai: %+v, dnn: %+v]", snssai, dnn)
 
@@ -157,8 +162,15 @@ func SelectSmf(
 
 	// select the first SMF, TODO: select base on other info
 	smContext.SmfProfiles = result.NfInstances
-	smfNum := len(result.NfInstances)
-	servingSmfIndex := getServingSmfIndex(smfNum)
+	// smfNum := len(result.NfInstances)
+	// servingSmfIndex := getServingSmfIndex(smfNum)
+	servingSmfIndex := 0
+	if amf_context.AMF_Self().EnableScaling {
+		h := fnv.New32a()
+		h.Write([]byte(ue.Supi))
+		key := int(h.Sum32())
+		servingSmfIndex = int(key % len(result.NfInstances))
+	}
 	nfProfile := result.NfInstances[servingSmfIndex]
 	smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
 	smContext.SetSmfID(nfProfile.NfInstanceId)

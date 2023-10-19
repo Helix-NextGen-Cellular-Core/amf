@@ -7,7 +7,6 @@
 package service
 
 import (
-	"encoding/hex"
 	"io"
 	"net"
 	"sync"
@@ -203,8 +202,8 @@ func handleConnection(conn *sctp.SCTPConn, bufsize uint32, handler NGAPHandler) 
 				continue
 			}
 
-			logger.NgapLog.Tracef("Read %d bytes", n)
-			logger.NgapLog.Tracef("Packet content:\n%+v", hex.Dump(buf[:n]))
+			// logger.NgapLog.Tracef("Read %d bytes", n)
+			// logger.NgapLog.Tracef("Packet content:\n%+v", hex.Dump(buf[:n]))
 
 			// TODO: concurrent on per-UE message
 			handler.HandleMessage(conn, buf[:n])
