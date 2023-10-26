@@ -21,6 +21,8 @@ import (
 )
 
 var dbMutex sync.Mutex
+var StoreAmContextDbChannel chan *AmfUe
+var DeleteAmContextDbChannel chan *AmfUe
 
 type CustomFieldsAmfUe struct {
 	State       map[models.AccessType]string `json:"state"`
@@ -114,6 +116,14 @@ func SetupAmfCollection() {
 	if err != nil {
 		logger.ContextLog.Errorf("Create index failed on RanUeNgapID field.")
 	}*/
+	StoreAmContextDbChannel = make(chan *AmfUe, 8192)
+	DeleteAmContextDbChannel = make(chan *AmfUe, 8192)
+
+	for i := 1; i < 25; i++ {
+		go ProcessStoreContextInDB()
+		go ProcessDeleteContextFromDB()
+	}
+
 }
 
 func ToBsonM(data *AmfUe) (ret bson.M) {
@@ -129,22 +139,39 @@ func ToBsonM(data *AmfUe) (ret bson.M) {
 	return
 }
 
+func ProcessStoreContextInDB() {
+	for {
+		rcvdAmfUE := <-StoreAmContextDbChannel
+		amfUeBsonA := ToBsonM(rcvdAmfUE)
+		filter := bson.M{"supi": rcvdAmfUE.Supi}
+		MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
+	}
+}
+
 func StoreContextInDB(ue *AmfUe) {
 	self := AMF_Self()
 	if self.EnableDbStore {
-		amfUeBsonA := ToBsonM(ue)
-		filter := bson.M{"supi": ue.Supi}
-		// TODOBIlal run with go routine
-		MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
+		StoreAmContextDbChannel <- ue
+		// amfUeBsonA := ToBsonM(ue)
+		// filter := bson.M{"supi": ue.Supi}
+		// MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
+	}
+}
+
+func ProcessDeleteContextFromDB() {
+	for {
+		rcvdAmfUE := <-DeleteAmContextDbChannel
+		filter := bson.M{"supi": rcvdAmfUE.Supi}
+		MongoDBLibrary.RestfulAPIDeleteOne(AmfUeDataColl, filter)
 	}
 }
 
 func DeleteContextFromDB(ue *AmfUe) {
 	self := AMF_Self()
 	if self.EnableDbStore {
-		filter := bson.M{"supi": ue.Supi}
-
-		MongoDBLibrary.RestfulAPIDeleteOne(AmfUeDataColl, filter)
+		DeleteAmContextDbChannel <- ue
+		// filter := bson.M{"supi": ue.Supi}
+		// MongoDBLibrary.RestfulAPIDeleteOne(AmfUeDataColl, filter)
 	}
 }
 

@@ -78,7 +78,7 @@ func Registered(state *fsm.State, event fsm.EventType, args fsm.ArgsType) {
 		amfUe.GmmLog.Debugln("EntryEvent at GMM State[Registered]")
 		//store context in DB. Registration procedure is complete.
 		amfUe.PublishUeCtxtInfo()
-		go context.StoreContextInDB(amfUe)
+		context.StoreContextInDB(amfUe)
 	case GmmMessageEvent:
 		amfUe := args[ArgAmfUe].(*context.AmfUe)
 		procedureCode := args[ArgProcedureCode].(int64)
