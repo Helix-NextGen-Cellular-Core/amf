@@ -386,7 +386,10 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 		if ue.CmConnect(models.AccessType__3_GPP_ACCESS) {
 			if n2Info == nil {
 				n1n2MessageTransferRspData.Cause = models.N1N2MessageTransferCause_N1_N2_TRANSFER_INITIATED
-				gmm_message.SendDLNASTransport(ue.RanUe[models.AccessType__3_GPP_ACCESS],
+				ue.RanUeLock.RLock()
+				ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+				ue.RanUeLock.RUnlock()
+				gmm_message.SendDLNASTransport(ranUe,
 					nasMessage.PayloadContainerTypeN1SMInfo, n1Msg, requestData.PduSessionId, 0, nil, 0)
 			} else {
 				n1n2MessageTransferRspData.Cause = models.N1N2MessageTransferCause_ATTEMPTING_TO_REACH_UE
@@ -401,7 +404,10 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 					logger.GmmLog.Errorf("Build Notification failed : %s", err.Error())
 					return n1n2MessageTransferRspData, locationHeader, problemDetails, transferErr
 				}
-				gmm_message.SendNotification(ue.RanUe[models.AccessType__3_GPP_ACCESS], nasMsg)
+				ue.RanUeLock.RLock()
+				ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+				ue.RanUeLock.RUnlock()
+				gmm_message.SendNotification(ranUe, nasMsg)
 			}
 			end_time := time.Now().UnixNano()
 			logger.ProducerLog.Infof("N1N2MessageTransferProcedure3 took: %d us", end_time-start_time)

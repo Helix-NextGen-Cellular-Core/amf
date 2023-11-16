@@ -276,7 +276,10 @@ func SendRegistrationAccept(
 	if ue.RanUe[anType].UeContextRequest {
 		ngap_message.SendInitialContextSetupRequest(ue, anType, nasMsg, pduSessionResourceSetupList, nil, nil, nil)
 	} else {
-		ngap_message.SendDownlinkNasTransport(ue.RanUe[models.AccessType__3_GPP_ACCESS], nasMsg, nil)
+		ue.RanUeLock.RLock()
+		ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+		ue.RanUeLock.RUnlock()
+		ngap_message.SendDownlinkNasTransport(ranUe, nasMsg, nil)
 	}
 
 	if context.AMF_Self().T3550Cfg.Enable {

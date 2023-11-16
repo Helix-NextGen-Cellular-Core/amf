@@ -1701,7 +1701,10 @@ func NetworkInitiatedDeregistrationProcedure(ue *context.AmfUe, accessType model
 	//if ue is not connected mode, removing UE Context
 	if !ue.State[accessType].Is(context.Registered) {
 		if ue.CmConnect(accessType) {
-			ngap_message.SendUEContextReleaseCommand(ue.RanUe[models.AccessType__3_GPP_ACCESS],
+			ue.RanUeLock.RLock()
+			ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+			ue.RanUeLock.RUnlock()
+			ngap_message.SendUEContextReleaseCommand(ranUe,
 				context.UeContextReleaseDueToNwInitiatedDeregistraion, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
 		} else {
 			ue.GmmLog.Infof("Removing UE Context")
@@ -2061,7 +2064,10 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 				return err
 			}
 			mobilityRestrictionList := ngap_message.BuildIEMobilityRestrictionList(ue)
-			ngap_message.SendDownlinkNasTransport(ue.RanUe[models.AccessType__3_GPP_ACCESS],
+			ue.RanUeLock.RLock()
+			ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+			ue.RanUeLock.RUnlock()
+			ngap_message.SendDownlinkNasTransport(ranUe,
 				ue.ConfigurationUpdateMessage, &mobilityRestrictionList)
 			ue.ConfigurationUpdateMessage = nil
 		}
@@ -2487,8 +2493,11 @@ func HandleDeregistrationRequest(ue *context.AmfUe, anType models.AccessType,
 	// TS 23.502 4.2.6, 4.12.3
 	switch targetDeregistrationAccessType {
 	case nasMessage.AccessType3GPP:
-		if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
-			ngap_message.SendUEContextReleaseCommand(ue.RanUe[models.AccessType__3_GPP_ACCESS],
+		ue.RanUeLock.RLock()
+		ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+		ue.RanUeLock.RUnlock()
+		if ranUe != nil {
+			ngap_message.SendUEContextReleaseCommand(ranUe,
 				context.UeContextReleaseUeContext, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
 		}
 		return GmmFSM.SendEvent(ue.State[models.AccessType__3_GPP_ACCESS], DeregistrationAcceptEvent, fsm.ArgsType{
@@ -2505,8 +2514,11 @@ func HandleDeregistrationRequest(ue *context.AmfUe, anType models.AccessType,
 			ArgAccessType: anType,
 		})
 	case nasMessage.AccessTypeBoth:
-		if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
-			ngap_message.SendUEContextReleaseCommand(ue.RanUe[models.AccessType__3_GPP_ACCESS],
+		ue.RanUeLock.RLock()
+		ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+		ue.RanUeLock.RUnlock()
+		if ranUe != nil {
+			ngap_message.SendUEContextReleaseCommand(ranUe,
 				context.UeContextReleaseUeContext, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
 		}
 		if ue.RanUe[models.AccessType_NON_3_GPP_ACCESS] != nil {
@@ -2542,8 +2554,12 @@ func HandleDeregistrationAccept(ue *context.AmfUe, anType models.AccessType,
 
 	switch ue.DeregistrationTargetAccessType {
 	case nasMessage.AccessType3GPP:
-		if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
-			ngap_message.SendUEContextReleaseCommand(ue.RanUe[models.AccessType__3_GPP_ACCESS],
+		ue.RanUeLock.RLock()
+		ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+		ue.RanUeLock.RUnlock()
+
+		if ranUe != nil {
+			ngap_message.SendUEContextReleaseCommand(ranUe,
 				context.UeContextReleaseDueToNwInitiatedDeregistraion, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
 		}
 	case nasMessage.AccessTypeNon3GPP:
@@ -2552,8 +2568,11 @@ func HandleDeregistrationAccept(ue *context.AmfUe, anType models.AccessType,
 				context.UeContextReleaseDueToNwInitiatedDeregistraion, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
 		}
 	case nasMessage.AccessTypeBoth:
-		if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
-			ngap_message.SendUEContextReleaseCommand(ue.RanUe[models.AccessType__3_GPP_ACCESS],
+		ue.RanUeLock.RLock()
+		ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+		ue.RanUeLock.RUnlock()
+		if ranUe != nil {
+			ngap_message.SendUEContextReleaseCommand(ranUe,
 				context.UeContextReleaseDueToNwInitiatedDeregistraion, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
 		}
 		if ue.RanUe[models.AccessType_NON_3_GPP_ACCESS] != nil {

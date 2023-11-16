@@ -148,7 +148,8 @@ type AmfUe struct {
 	SmContextList sync.Map `json:"-"` // map[int32]*SmContext, pdu session id as key
 	/* Related Context*/
 	//RanUe map[models.AccessType]*RanUe `json:"ranUe,omitempty" yaml:"ranUe" bson:"ranUe,omitempty"`
-	RanUe map[models.AccessType]*RanUe `json:"ranUe, omitEmpty"`
+	RanUe     map[models.AccessType]*RanUe `json:"ranUe, omitEmpty"`
+	RanUeLock sync.RWMutex                 `json:"-"` // mutex for RanUe
 	/* other */
 	onGoing                       map[models.AccessType]*OnGoing        `json:"onGoing,omitempty"`
 	UeRadioCapability             string                                `json:"ueRadioCapability,omitempty"` // OCTET string
@@ -225,12 +226,17 @@ func (ue *AmfUe) MarshalJSON() ([]byte, error) {
 	smCtxListVal := make(map[string]SmContext)
 	var ranUeNgapIDVal, amfUeNgapIDVal int64
 	var gnbId string
-	if ue.RanUe != nil && ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
-		gnbId = ue.RanUe[models.AccessType__3_GPP_ACCESS].Ran.GnbId
-		if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
-			ranUeNgapIDVal = ue.RanUe[models.AccessType__3_GPP_ACCESS].RanUeNgapId
-			amfUeNgapIDVal = ue.RanUe[models.AccessType__3_GPP_ACCESS].AmfUeNgapId
+	if ue.RanUe != nil {
+		ue.RanUeLock.RLock()
+		ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+		if ranUe != nil {
+			gnbId = ranUe.Ran.GnbId
+			// if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
+			ranUeNgapIDVal = ranUe.RanUeNgapId
+			amfUeNgapIDVal = ranUe.AmfUeNgapId
+			// }
 		}
+		ue.RanUeLock.RUnlock()
 	}
 
 	for access, state := range ue.State {
@@ -1061,6 +1067,8 @@ func (ueContext *AmfUe) PublishUeCtxtInfo() {
 	kafkaSmCtxt.Guti = ueContext.Guti
 	kafkaSmCtxt.Tmsi = ueContext.Tmsi
 	kafkaSmCtxt.AmfIp = ueContext.AmfInstanceIp
+	ueContext.RanUeLock.RLock()
+	defer ueContext.RanUeLock.RUnlock()
 	if ueContext.RanUe != nil && ueContext.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
 		kafkaSmCtxt.AmfNgapId = ueContext.RanUe[models.AccessType__3_GPP_ACCESS].AmfUeNgapId
 		kafkaSmCtxt.RanNgapId = ueContext.RanUe[models.AccessType__3_GPP_ACCESS].RanUeNgapId

@@ -191,7 +191,8 @@ func DbFetch(collName string, filter bson.M) *AmfUe {
 
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
-
+	ue.RanUeLock.Lock()
+	defer ue.RanUeLock.Unlock()
 	ue.RanUe[models.AccessType__3_GPP_ACCESS].AmfUe = ue
 	AMF_Self().RanUePool.Store(ue.RanUe[models.AccessType__3_GPP_ACCESS].AmfUeNgapId, ue.RanUe[models.AccessType__3_GPP_ACCESS])
 	AMF_Self().UePool.Store(ue.Supi, ue)
@@ -222,12 +223,15 @@ func DbFetchRanUeByRanUeNgapID(ranUeNgapID int64, ran *AmfRan) *RanUe {
 	//If so, then return the stored RanUE
 	//else return RanUE from newly fetched AmfUe
 	//and store in context
-	ran.RanUeList = append(ran.RanUeList, ue.RanUe[models.AccessType__3_GPP_ACCESS])
+	ue.RanUeLock.RLock()
+	defer ue.RanUeLock.RUnlock()
+	uEranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+	ran.RanUeList = append(ran.RanUeList, uEranUe)
 	ranUe := ran.RanUeFindByRanUeNgapIDLocal(ranUeNgapID)
 	if ranUe != nil {
 		return ranUe
 	}
-	return ue.RanUe[models.AccessType__3_GPP_ACCESS]
+	return uEranUe
 }
 
 func DbFetchRanUeByAmfUeNgapID(amfUeNgapID int64) *RanUe {
@@ -249,6 +253,8 @@ func DbFetchRanUeByAmfUeNgapID(amfUeNgapID int64) *RanUe {
 	if ranUe != nil {
 		return ranUe
 	}
+	ue.RanUeLock.RLock()
+	defer ue.RanUeLock.RUnlock()
 	return ue.RanUe[models.AccessType__3_GPP_ACCESS]
 }
 

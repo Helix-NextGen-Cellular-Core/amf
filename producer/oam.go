@@ -113,13 +113,17 @@ func HandleOAMActiveUEContextsFromDB(request *http_wrapper.Request) *http_wrappe
 			Tac:        ue.Tai.Tac,
 			Tmsi:       fmt.Sprintf("%08x", ue.Tmsi),
 		}
-		if ue.RanUe != nil && ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
-			ueContext.RanUeNgapId = ue.RanUe[models.AccessType__3_GPP_ACCESS].RanUeNgapId
-			ueContext.AmfUeNgapId = ue.RanUe[models.AccessType__3_GPP_ACCESS].AmfUeNgapId
+		if ue.RanUe != nil {
+			ue.RanUeLock.RLock()
+			if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
+				ueContext.RanUeNgapId = ue.RanUe[models.AccessType__3_GPP_ACCESS].RanUeNgapId
+				ueContext.AmfUeNgapId = ue.RanUe[models.AccessType__3_GPP_ACCESS].AmfUeNgapId
 
-			if ue.RanUe[models.AccessType__3_GPP_ACCESS].Ran != nil {
-				ueContext.GnbId = ue.RanUe[models.AccessType__3_GPP_ACCESS].Ran.GnbId
+				if ue.RanUe[models.AccessType__3_GPP_ACCESS].Ran != nil {
+					ueContext.GnbId = ue.RanUe[models.AccessType__3_GPP_ACCESS].Ran.GnbId
+				}
 			}
+			ue.RanUeLock.RUnlock()
 		}
 		ueContext.AmfInstanceName = ue.AmfInstanceName
 		ueContext.AmfInstanceIp = ue.AmfInstanceIp
