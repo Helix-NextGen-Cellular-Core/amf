@@ -45,7 +45,6 @@ require (
 
 require (
 	github.com/goccy/go-json v0.9.7 // indirect
-	github.com/mbilal92/MongoDBLibrary v0.0.0-20230807100907-4b47949aea39 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 )
