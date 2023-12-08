@@ -654,12 +654,14 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 	startTime := time.Now().UnixNano()
 	if ue.ServingAmfChanged || ue.State[models.AccessType_NON_3_GPP_ACCESS].Is(context.Registered) ||
 		!ue.SubscriptionDataValid {
+		// startTime1 := time.Now().UnixNano()
 		if err := communicateWithUDM(ue, anType); err != nil {
 			return err
 		}
+		// fmt.Println("communicateWithUDM1 took: ", (time.Now().UnixNano() - startTime1))
 	}
 
-	fmt.Println("communicateWithUDM took: ", (time.Now().UnixNano() - startTime))
+	// fmt.Println("communicateWithUDM took: ", (time.Now().UnixNano() - startTime))
 
 	param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{
 		Supi: optional.NewString(ue.Supi),
@@ -689,7 +691,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 				if amfSelf.EnableScaling == true {
 					h := fnv.New32a()
 					h.Write([]byte(ue.Supi))
-					fmt.Println("PCF: ue.Supi: ", ue.Supi)
+					// fmt.Println("PCF: ue.Supi: ", ue.Supi)
 					key := int(h.Sum32())
 					nfInstanceIndex = int(key % len(resp.NfInstances))
 				}
@@ -702,6 +704,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 						models.NfServiceStatus_REGISTERED)
 					if pcfUri != "" {
 						ue.PcfId = nfProfile.NfInstanceId
+						fmt.Println("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_PCF), " NF is: ", nfProfile.Ipv4Addresses)
 						break
 					}
 				}
@@ -1148,16 +1151,16 @@ func negotiateDRXParameters(ue *context.AmfUe, requestedDRXParameters *nasType.R
 
 func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	ue.GmmLog.Debugln("communicateWithUDM")
+	start_time := time.Now().UnixNano()
 	amfSelf := context.AMF_Self()
 
 	// UDM selection described in TS 23.501 6.3.8
 	// TODO: consider udm group id, Routing ID part of SUCI, GPSI or External Group ID (e.g., by the NEF)
-	param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{
-		Supi: optional.NewString(ue.Supi),
-	}
-
-	st := time.Now().UnixNano()
+	// st := time.Now().UnixNano()
 	if ue.NudmSDMUri == "" {
+		param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{
+			Supi: optional.NewString(ue.Supi),
+		}
 		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_UDM, models.NfType_AMF, &param)
 		if err != nil {
 			return fmt.Errorf("AMF can not select an UDM by NRF")
@@ -1178,7 +1181,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 		if amfSelf.EnableScaling == true {
 			h := fnv.New32a()
 			h.Write([]byte(ue.Supi))
-			fmt.Println("communicateWithUDM: ue.Supi: ", ue.Supi)
+			// fmt.Println("communicateWithUDM: ue.Supi: ", ue.Supi)
 			key := int(h.Sum32())
 			nfInstanceIndex = int(key % len(resp.NfInstances))
 		}
@@ -1194,6 +1197,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 			sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
 			// ue.GmmLog.Infoln("communicateWithUDM: after  SearchNFServiceUrisdm ", time.Now().UnixNano())
 			if uecmUri != "" && sdmUri != "" {
+				fmt.Println("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_UDM), " NF is: ", nfProfile.Ipv4Addresses)
 				break
 			}
 		}
@@ -1209,14 +1213,14 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	}
 	// fmt.Println("UdmSelection took: ", time.Now().UnixNano()-st)
 
-	st = time.Now().UnixNano()
+	st := time.Now().UnixNano()
 	problemDetails, err := consumer.UeCmRegistration(ue, accessType, true)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("UECM_Registration Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		ue.GmmLog.Errorf("UECM_Registration Error[%+v]", err)
 	}
-	// fmt.Println("UeCmRegistration took: ", time.Now().UnixNano()-st)
+	fmt.Println("UeCmRegistration took: ", time.Now().UnixNano()-st)
 
 	st = time.Now().UnixNano()
 	problemDetails, err = consumer.SDMGetAmData(ue)
@@ -1256,6 +1260,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	fmt.Println("SDMSubscribe took: ", time.Now().UnixNano()-st)
 
 	ue.SubscriptionDataValid = true
+	fmt.Println("communicateWithUDM2 took: ", time.Now().UnixNano()-start_time)
 	return nil
 }
 
@@ -1624,10 +1629,10 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 		}
 
 		nfInstanceIndex := 0
+		parts := strings.Split(ue.Suci, "-")
+		imsi := fmt.Sprintf("imsi-%s%s%s", parts[2], parts[3], parts[7])
 		if amfSelf.EnableScaling == true {
 			h := fnv.New32a()
-			parts := strings.Split(ue.Suci, "-")
-			imsi := fmt.Sprintf("imsi-%s%s%s", parts[2], parts[3], parts[7])
 			// h.Write([]byte(ue.Suci))
 			h.Write([]byte(imsi))
 			fmt.Println("AUSF: ue.Suci: ", ue.Suci, " imsi ", imsi)
@@ -1642,6 +1647,7 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 			ue.AusfId = nfProfile.NfInstanceId
 			ausfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NAUSF_AUTH, models.NfServiceStatus_REGISTERED)
 			if ausfUri != "" {
+				fmt.Println("for Ue: ", imsi, " for targetNfType ", string(models.NfType_AUSF), " NF is: ", nfProfile.Ipv4Addresses)
 				break
 			}
 		}

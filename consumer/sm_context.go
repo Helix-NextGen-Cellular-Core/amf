@@ -195,6 +195,7 @@ func SelectSmf(
 		smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
 		smContext.SetSmfID(nfProfile.NfInstanceId)
 		smContext.SetSmfUri(smfUri)
+		fmt.Println("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
 		break
 	}
 
