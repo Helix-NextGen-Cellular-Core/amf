@@ -47,7 +47,7 @@ func SendNfDiscoveryToNrf(nrfUri string, targetNfType, requestNfType models.NfTy
 			err = fmt.Errorf("SearchNFInstances' response body cannot close: %+w", bodyCloseErr)
 		}
 	}()
-
+	// fmt.Println("SearchNFInstances: ", nrfUri, " result: ", result)
 	amfSelf := amf_context.AMF_Self()
 
 	for _, nfProfile := range result.NfInstances {
@@ -73,6 +73,10 @@ func SendNfDiscoveryToNrf(nrfUri string, targetNfType, requestNfType models.NfTy
 
 func SearchUdmSdmInstance(ue *amf_context.AmfUe, nrfUri string, targetNfType, requestNfType models.NfType,
 	param *Nnrf_NFDiscovery.SearchNFInstancesParamOpts) error {
+	if ue.NudmSDMUri != "" {
+		return nil
+	}
+
 	resp, localErr := SendSearchNFInstances(nrfUri, targetNfType, requestNfType, param)
 	if localErr != nil {
 		return localErr
@@ -93,21 +97,46 @@ func SearchUdmSdmInstance(ue *amf_context.AmfUe, nrfUri string, targetNfType, re
 	if amf_context.AMF_Self().EnableScaling == true {
 		h := fnv.New32a()
 		h.Write([]byte(ue.Supi))
+		fmt.Println("SearchUdmSdmInstance: ue.Supi: ", ue.Supi)
 		key := int(h.Sum32())
 		nfInstanceIndex = int(key % len(resp.NfInstances))
 	}
-	var sdmUri string
+	var sdmUri, uecmUri string
 	for _, nfProfile := range resp.NfInstances {
 		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
 			continue
 		}
 		ue.UdmId = nfProfile.NfInstanceId
+		uecmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
 		sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
 		if sdmUri != "" {
+			fmt.Println("for Ue: ", ue.Supi, " for targetNfType ", string(targetNfType), " NF is: ", nfProfile.Ipv4Addresses)
 			break
 		}
 	}
+	// min := int(math.MaxInt64)
+	// nf := models.NfProfile{}
+	// amf_context.AMF_Self().NfProfileListMutex.Lock()
+	// if amf_context.AMF_Self().NfProfileList[targetNfType] == nil {
+	// 	amf_context.AMF_Self().NfProfileList[targetNfType] = make(map[string]int)
+	// }
+
+	// for _, nfProfile := range resp.NfInstances {
+	// 	if amf_context.AMF_Self().NfProfileList[targetNfType][nfProfile.NfInstanceId] < min {
+	// 		nf = nfProfile
+	// 		min = amf_context.AMF_Self().NfProfileList[targetNfType][nfProfile.NfInstanceId]
+	// 	}
+	// }
+	// amf_context.AMF_Self().NfProfileList[targetNfType][nf.NfInstanceId]++
+	// fmt.Println("for Ue: ", ue.Supi, " for targetNfType ", string(targetNfType), " NF is: ", nf.Ipv4Addresses, "nf Count:", amf_context.AMF_Self().NfProfileList[targetNfType][nf.NfInstanceId])
+	// amf_context.AMF_Self().NfProfileListMutex.Unlock()
+
+	// ue.UdmId = nf.NfInstanceId
+	// sdmUri = util.SearchNFServiceUri(nf, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
+	// uecmUri := util.SearchNFServiceUri(nf, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
+	ue.NudmUECMUri = uecmUri
 	ue.NudmSDMUri = sdmUri
+	// fmt.Println("SearchUdmSdmInstance-for Ue: ", ue.Supi, " ue.NudmUECMUri: ", ue.NudmUECMUri, " ue.NudmSDMUri: ", ue.NudmSDMUri)
 	if ue.NudmSDMUri == "" {
 		err := fmt.Errorf("AMF can not select an UDM by NRF")
 		logger.ConsumerLog.Errorf(err.Error())
@@ -122,7 +151,7 @@ func SearchNssfNSSelectionInstance(ue *amf_context.AmfUe, nrfUri string, targetN
 	if localErr != nil {
 		return localErr
 	}
-
+	// fmt.Println("SendSearchNFInstances: targetNfType", string(targetNfType), " result: ", resp.NfInstances)
 	// select the first NSSF, TODO: select base on other info
 	var nssfUri string
 	for _, nfProfile := range resp.NfInstances {
@@ -146,7 +175,7 @@ func SearchAmfCommunicationInstance(ue *amf_context.AmfUe, nrfUri string, target
 		err = localErr
 		return
 	}
-
+	// fmt.Println("SendSearchNFInstances: targetNfType", string(targetNfType), " result: ", resp.NfInstances)
 	// select the first AMF, TODO: select base on other info
 	var amfUri string
 	for _, nfProfile := range resp.NfInstances {

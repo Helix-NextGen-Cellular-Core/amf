@@ -93,6 +93,8 @@ type AMFContext struct {
 	NrfCacheEvictionInterval time.Duration
 	EnableScaling            bool
 	DisableDRSM              bool
+	// NfProfileList            map[models.NfType]map[string]int
+	// NfProfileListMutex       sync.RWMutex
 }
 
 type AMFContextEventSubscription struct {
