@@ -659,60 +659,66 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 		}
 	}
 
-	end_time := time.Now().UnixNano()
-	ue.GmmLog.Infoln("communicateWithUDM took: ", (end_time - startTime))
+	fmt.Println("communicateWithUDM took: ", (time.Now().UnixNano() - startTime))
 
 	param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{
 		Supi: optional.NewString(ue.Supi),
 	}
-	for {
-		// ue.GmmLog.Infoln("before SendSearchNFInstances", time.Now().UnixNano())
-		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_PCF, models.NfType_AMF, &param)
-		// ue.GmmLog.Infoln("after SendSearchNFInstances", time.Now().UnixNano())
-		if err != nil {
-			ue.GmmLog.Error("AMF can not select an PCF by NRF")
-		} else {
-			// select the first PCF, TODO: select base on other info
-			nfInstanceIds := make([]string, 0, len(resp.NfInstances))
-			for _, nfProfile := range resp.NfInstances {
-				nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
-			}
-			sort.Strings(nfInstanceIds)
-			nfInstanceIdIndexMap := make(map[string]int)
-			for index, value := range nfInstanceIds {
-				nfInstanceIdIndexMap[value] = index
-			}
-
-			nfInstanceIndex := 0
-			if amfSelf.EnableScaling == true {
-				h := fnv.New32a()
-				h.Write([]byte(ue.Supi))
-				key := int(h.Sum32())
-				nfInstanceIndex = int(key % len(resp.NfInstances))
-			}
-			var pcfUri string
-			for _, nfProfile := range resp.NfInstances {
-				if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
-					continue
+	startTime = time.Now().UnixNano()
+	if ue.PcfUri == "" {
+		for {
+			// ue.GmmLog.Infoln("before SendSearchNFInstances", time.Now().UnixNano())
+			resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_PCF, models.NfType_AMF, &param)
+			// ue.GmmLog.Infoln("after SendSearchNFInstances", time.Now().UnixNano())
+			// fmt.Println("SendSearchNFInstances: targetNfType", string(models.NfType_PCF), " result: ", resp.NfInstances)
+			if err != nil {
+				ue.GmmLog.Error("AMF can not select an PCF by NRF")
+			} else {
+				// select the first PCF, TODO: select base on other info
+				nfInstanceIds := make([]string, 0, len(resp.NfInstances))
+				for _, nfProfile := range resp.NfInstances {
+					nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
 				}
-				pcfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NPCF_AM_POLICY_CONTROL,
-					models.NfServiceStatus_REGISTERED)
-				if pcfUri != "" {
-					ue.PcfId = nfProfile.NfInstanceId
+				sort.Strings(nfInstanceIds)
+				nfInstanceIdIndexMap := make(map[string]int)
+				for index, value := range nfInstanceIds {
+					nfInstanceIdIndexMap[value] = index
+				}
+
+				nfInstanceIndex := 0
+				if amfSelf.EnableScaling == true {
+					h := fnv.New32a()
+					h.Write([]byte(ue.Supi))
+					fmt.Println("PCF: ue.Supi: ", ue.Supi)
+					key := int(h.Sum32())
+					nfInstanceIndex = int(key % len(resp.NfInstances))
+				}
+				var pcfUri string
+				for _, nfProfile := range resp.NfInstances {
+					if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+						continue
+					}
+					pcfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NPCF_AM_POLICY_CONTROL,
+						models.NfServiceStatus_REGISTERED)
+					if pcfUri != "" {
+						ue.PcfId = nfProfile.NfInstanceId
+						break
+					}
+				}
+				if ue.PcfUri = pcfUri; ue.PcfUri == "" {
+					ue.GmmLog.Error("AMF can not select an PCF by NRF")
+				} else {
 					break
 				}
 			}
-			if ue.PcfUri = pcfUri; ue.PcfUri == "" {
-				ue.GmmLog.Error("AMF can not select an PCF by NRF")
-			} else {
-				break
-			}
+			time.Sleep(500 * time.Millisecond) // sleep a while when search NF Instance fail
 		}
-		time.Sleep(500 * time.Millisecond) // sleep a while when search NF Instance fail
 	}
 	// ue.GmmLog.Infoln("before AMPolicyControlCreate", time.Now().UnixNano())
 	// TODO att time stame
 	problemDetails, err := consumer.AMPolicyControlCreate(ue, anType)
+	fmt.Printf("AMPolicyControlCreate took: %d\n", time.Now().UnixNano()-startTime)
+
 	// TODO att time stame
 	// ue.GmmLog.Infoln("after AMPolicyControlCreate", time.Now().UnixNano())
 	if problemDetails != nil {
@@ -761,7 +767,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 	} else {
 		ue.Non3gppDeregistrationTimerValue = amfSelf.Non3gppDeregistrationTimerValue
 	}
-
+	// startTime = time.Now().UnixNano()
 	if anType == models.AccessType__3_GPP_ACCESS {
 		gmm_message.SendRegistrationAccept(ue, anType, nil, nil, nil, nil, nil)
 	} else {
@@ -776,6 +782,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 		}
 		ue.RegistrationAcceptForNon3GPPAccess = registrationAccept
 	}
+	// fmt.Printf("SendRegistrationAccept took: %d\n", time.Now().UnixNano()-startTime)
 	return nil
 }
 
@@ -1150,51 +1157,57 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	}
 
 	st := time.Now().UnixNano()
-	resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_UDM, models.NfType_AMF, &param)
-	if err != nil {
-		return fmt.Errorf("AMF can not select an UDM by NRF")
-	}
-	ue.GmmLog.Infoln("communicateWithUDM: SendSearchNFInstances took: ", time.Now().UnixNano()-st)
-	nfInstanceIds := make([]string, 0, len(resp.NfInstances))
-	for _, nfProfile := range resp.NfInstances {
-		nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
-	}
-	sort.Strings(nfInstanceIds)
-	nfInstanceIdIndexMap := make(map[string]int)
-	for index, value := range nfInstanceIds {
-		nfInstanceIdIndexMap[value] = index
-	}
-
-	nfInstanceIndex := 0
-	if amfSelf.EnableScaling == true {
-		h := fnv.New32a()
-		h.Write([]byte(ue.Supi))
-		key := int(h.Sum32())
-		nfInstanceIndex = int(key % len(resp.NfInstances))
-	}
-	var uecmUri, sdmUri string
-	st = time.Now().UnixNano()
-	for _, nfProfile := range resp.NfInstances {
-		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
-			continue
+	if ue.NudmSDMUri == "" {
+		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_UDM, models.NfType_AMF, &param)
+		if err != nil {
+			return fmt.Errorf("AMF can not select an UDM by NRF")
 		}
-		ue.UdmId = nfProfile.NfInstanceId
-		// ue.GmmLog.Infoln("communicateWithUDM: before  SearchNFServiceUri", time.Now().UnixNano())
-		uecmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
-		// ue.GmmLog.Infoln("communicateWithUDM: after  SearchNFServiceUri uec ", time.Now().UnixNano())
-		sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
-		// ue.GmmLog.Infoln("communicateWithUDM: after  SearchNFServiceUrisdm ", time.Now().UnixNano())
-		if uecmUri != "" && sdmUri != "" {
-			break
+		// fmt.Println("SendSearchNFInstances: targetNfType", string(models.NfType_UDM), " result: ", resp.NfInstances)
+		// ue.GmmLog.Infoln("communicateWithUDM: SendSearchNFInstances took: ", time.Now().UnixNano()-st)
+		nfInstanceIds := make([]string, 0, len(resp.NfInstances))
+		for _, nfProfile := range resp.NfInstances {
+			nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+		}
+		sort.Strings(nfInstanceIds)
+		nfInstanceIdIndexMap := make(map[string]int)
+		for index, value := range nfInstanceIds {
+			nfInstanceIdIndexMap[value] = index
+		}
+
+		nfInstanceIndex := 0
+		if amfSelf.EnableScaling == true {
+			h := fnv.New32a()
+			h.Write([]byte(ue.Supi))
+			fmt.Println("communicateWithUDM: ue.Supi: ", ue.Supi)
+			key := int(h.Sum32())
+			nfInstanceIndex = int(key % len(resp.NfInstances))
+		}
+		var uecmUri, sdmUri string
+		for _, nfProfile := range resp.NfInstances {
+			if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+				continue
+			}
+			ue.UdmId = nfProfile.NfInstanceId
+			// ue.GmmLog.Infoln("communicateWithUDM: before  SearchNFServiceUri", time.Now().UnixNano())
+			uecmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
+			// ue.GmmLog.Infoln("communicateWithUDM: after  SearchNFServiceUri uec ", time.Now().UnixNano())
+			sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
+			// ue.GmmLog.Infoln("communicateWithUDM: after  SearchNFServiceUrisdm ", time.Now().UnixNano())
+			if uecmUri != "" && sdmUri != "" {
+				break
+			}
+		}
+		// ue.GmmLog.Infoln("communicateWithUDM: resp.NfInstances loop took ", time.Now().UnixNano()-st)
+
+		ue.NudmUECMUri = uecmUri
+		ue.NudmSDMUri = sdmUri
+		// fmt.Println("CoomunicatewithUDM-for Ue: ", ue.Supi, " ue.NudmUECMUri: ", ue.NudmUECMUri, " ue.NudmSDMUri: ", ue.NudmSDMUri)
+
+		if ue.NudmUECMUri == "" || ue.NudmSDMUri == "" {
+			return fmt.Errorf("AMF can not select an UDM by NRF")
 		}
 	}
-	ue.GmmLog.Infoln("communicateWithUDM: resp.NfInstances loop took ", time.Now().UnixNano()-st)
-
-	ue.NudmUECMUri = uecmUri
-	ue.NudmSDMUri = sdmUri
-	if ue.NudmUECMUri == "" || ue.NudmSDMUri == "" {
-		return fmt.Errorf("AMF can not select an UDM by NRF")
-	}
+	// fmt.Println("UdmSelection took: ", time.Now().UnixNano()-st)
 
 	st = time.Now().UnixNano()
 	problemDetails, err := consumer.UeCmRegistration(ue, accessType, true)
@@ -1203,7 +1216,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	} else if err != nil {
 		ue.GmmLog.Errorf("UECM_Registration Error[%+v]", err)
 	}
-	ue.GmmLog.Infoln("communicateWithUDM: UeCmRegistration took ", time.Now().UnixNano()-st)
+	// fmt.Println("UeCmRegistration took: ", time.Now().UnixNano()-st)
 
 	st = time.Now().UnixNano()
 	problemDetails, err = consumer.SDMGetAmData(ue)
@@ -1212,7 +1225,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	} else if err != nil {
 		return fmt.Errorf("SDM_Get AmData Error[%+v]", err)
 	}
-	ue.GmmLog.Infoln("communicateWithUDM: SDMGetAmData took: ", time.Now().UnixNano()-st)
+	fmt.Println("SDMGetAmData took: ", time.Now().UnixNano()-st)
 
 	st = time.Now().UnixNano()
 	problemDetails, err = consumer.SDMGetSmfSelectData(ue)
@@ -1221,7 +1234,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	} else if err != nil {
 		return fmt.Errorf("SDM_Get SmfSelectData Error[%+v]", err)
 	}
-	ue.GmmLog.Infoln("communicateWithUDM: SDMGetSmfSelectData took ", time.Now().UnixNano()-st)
+	fmt.Println("SDMGetSmfSelectData took: ", time.Now().UnixNano()-st)
 
 	st = time.Now().UnixNano()
 	problemDetails, err = consumer.SDMGetUeContextInSmfData(ue)
@@ -1230,7 +1243,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	} else if err != nil {
 		return fmt.Errorf("SDM_Get UeContextInSmfData Error[%+v]", err)
 	}
-	ue.GmmLog.Infoln("communicateWithUDM: after  SDMGetUeContextInSmfData ", time.Now().UnixNano())
+	fmt.Println("SDMGetUeContextInSmfData took: ", time.Now().UnixNano()-st)
 
 	st = time.Now().UnixNano()
 	problemDetails, err = consumer.SDMSubscribe(ue)
@@ -1240,7 +1253,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 		ue.GmmLog.Errorf("SDM Subscribe Error[%+v]", err)
 		return fmt.Errorf("SDM Subscribe Error[%+v]", err)
 	}
-	ue.GmmLog.Infoln("communicateWithUDM: SDMSubscribe took ", time.Now().UnixNano()-st)
+	fmt.Println("SDMSubscribe took: ", time.Now().UnixNano()-st)
 
 	ue.SubscriptionDataValid = true
 	return nil
@@ -1575,7 +1588,6 @@ func HandleConfigurationUpdateComplete(ue *context.AmfUe,
 
 func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (bool, error) {
 	// ue.GmmLog.Info("Authentication procedure")
-
 	// Check whether UE has SUCI and SUPI
 	if IdentityVerification(ue) {
 		ue.GmmLog.Debugln("UE has SUCI / SUPI")
@@ -1592,50 +1604,57 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 	amfSelf := context.AMF_Self()
 
 	// TODO: consider ausf group id, Routing ID part of SUCI
-	param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
-	resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
-	if err != nil {
-		ue.GmmLog.Error("AMF can not select an AUSF by NRF")
-		return false, err
-	}
-
-	// select the first AUSF, TODO: select base on other info
-	nfInstanceIds := make([]string, 0, len(resp.NfInstances))
-	for _, nfProfile := range resp.NfInstances {
-		nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
-	}
-	sort.Strings(nfInstanceIds)
-	nfInstanceIdIndexMap := make(map[string]int)
-	for index, value := range nfInstanceIds {
-		nfInstanceIdIndexMap[value] = index
-	}
-
-	nfInstanceIndex := 0
-	if amfSelf.EnableScaling == true {
-		h := fnv.New32a()
-		h.Write([]byte(ue.Suci))
-		key := int(h.Sum32())
-		nfInstanceIndex = int(key % len(resp.NfInstances))
-	}
-	var ausfUri string
-	for _, nfProfile := range resp.NfInstances {
-		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
-			continue
+	if ue.AusfUri == "" {
+		param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
+		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
+		if err != nil {
+			ue.GmmLog.Error("AMF can not select an AUSF by NRF")
+			return false, err
 		}
-		ue.AusfId = nfProfile.NfInstanceId
-		ausfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NAUSF_AUTH, models.NfServiceStatus_REGISTERED)
-		if ausfUri != "" {
-			break
+		// fmt.Println("SendSearchNFInstances: targetNfType", string(models.NfType_AUSF), " result: ", resp.NfInstances)
+		// select the first AUSF, TODO: select base on other info
+		nfInstanceIds := make([]string, 0, len(resp.NfInstances))
+		for _, nfProfile := range resp.NfInstances {
+			nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
 		}
-	}
-	if ausfUri == "" {
-		err = fmt.Errorf("AMF can not select an AUSF by NRF")
-		ue.GmmLog.Errorf(err.Error())
-		return false, err
-	}
-	ue.AusfUri = ausfUri
+		sort.Strings(nfInstanceIds)
+		nfInstanceIdIndexMap := make(map[string]int)
+		for index, value := range nfInstanceIds {
+			nfInstanceIdIndexMap[value] = index
+		}
 
+		nfInstanceIndex := 0
+		if amfSelf.EnableScaling == true {
+			h := fnv.New32a()
+			parts := strings.Split(ue.Suci, "-")
+			imsi := fmt.Sprintf("imsi-%s%s%s", parts[2], parts[3], parts[7])
+			// h.Write([]byte(ue.Suci))
+			h.Write([]byte(imsi))
+			fmt.Println("AUSF: ue.Suci: ", ue.Suci, " imsi ", imsi)
+			key := int(h.Sum32())
+			nfInstanceIndex = int(key % len(resp.NfInstances))
+		}
+		var ausfUri string
+		for _, nfProfile := range resp.NfInstances {
+			if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+				continue
+			}
+			ue.AusfId = nfProfile.NfInstanceId
+			ausfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NAUSF_AUTH, models.NfServiceStatus_REGISTERED)
+			if ausfUri != "" {
+				break
+			}
+		}
+		if ausfUri == "" {
+			err = fmt.Errorf("AMF can not select an AUSF by NRF")
+			ue.GmmLog.Errorf(err.Error())
+			return false, err
+		}
+		ue.AusfUri = ausfUri
+	}
+	st := time.Now().UnixNano()
 	response, problemDetails, err := consumer.SendUEAuthenticationAuthenticateRequest(ue, nil)
+	fmt.Println("SendUEAuthenticationAuthenticateRequest took: ", time.Now().UnixNano()-st)
 	if err != nil {
 		ue.GmmLog.Errorf("Nausf_UEAU Authenticate Request Error: %+v", err)
 		return false, errors.New("Authentication procedure failed")
@@ -1646,7 +1665,9 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 	ue.AuthenticationCtx = response
 	ue.ABBA = []uint8{0x00, 0x00} // set ABBA value as described at TS 33.501 Annex A.7.1
 
+	// st = time.Now().UnixNano()
 	gmm_message.SendAuthenticationRequest(ue.RanUe[accessType])
+	// fmt.Println("SendAuthenticationRequest took: ", time.Now().UnixNano()-st)
 	return false, nil
 }
 
