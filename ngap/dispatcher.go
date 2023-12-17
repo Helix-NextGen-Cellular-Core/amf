@@ -26,7 +26,7 @@ import (
 )
 
 func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage) {
-	// fmt.Printf("DispatchLb GnbId:%v GnbIp: %v %T\n", sctplbMsg.GnbId, sctplbMsg.GnbIpAddr, Amf2RanMsgChan)
+	// logger.ConsumerLog.Warnln("DispatchLb GnbId:%v GnbIp: %v %T\n", sctplbMsg.GnbId, sctplbMsg.GnbIpAddr, Amf2RanMsgChan)
 	var ran *context.AmfRan
 	amfSelf := context.AMF_Self()
 

@@ -19,6 +19,7 @@ import (
 	"github.com/antihax/optional"
 
 	amf_context "github.com/omec-project/amf/context"
+	"github.com/omec-project/amf/logger"
 	"github.com/omec-project/amf/util"
 	"github.com/omec-project/nas/nasMessage"
 	"github.com/omec-project/openapi"
@@ -70,7 +71,7 @@ func refreshSmfProfiles(ue *amf_context.AmfUe, smCtxt *amf_context.SmContext, ig
 	if err != nil {
 		return nil
 	}
-	// fmt.Println("SendSearchNFInstances: targetNfType", string(models.NfType_SMF), " result: ", result.NfInstances)
+	// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_SMF), " result: ", result.NfInstances)
 	var altSmfInst []models.NfProfile
 	//iterate over nf instances to ignore failed NF
 	for _, inst := range result.NfInstances {
@@ -155,7 +156,7 @@ func SelectSmf(
 	if err != nil {
 		return nil, nasMessage.Cause5GMMPayloadWasNotForwarded, err
 	}
-	// fmt.Println("SendSearchNFInstances: targetNfType", string(models.NfType_SMF), " result: ", result.NfInstances)
+	// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_SMF), " result: ", result.NfInstances)
 	if len(result.NfInstances) == 0 {
 		err = fmt.Errorf("DNN[%s] is not supported or not subscribed in the slice[Snssai: %+v]", dnn, snssai)
 		return nil, nasMessage.Cause5GMMDNNNotSupportedOrNotSubscribedInTheSlice, err
@@ -195,7 +196,7 @@ func SelectSmf(
 		smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
 		smContext.SetSmfID(nfProfile.NfInstanceId)
 		smContext.SetSmfUri(smfUri)
-		fmt.Println("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
+		logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
 		break
 	}
 

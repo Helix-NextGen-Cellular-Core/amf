@@ -27,6 +27,11 @@ import (
 
 func SendUEAuthenticationAuthenticateRequest(ue *amf_context.AmfUe,
 	resynchronizationInfo *models.ResynchronizationInfo) (*models.UeAuthenticationCtx, *models.ProblemDetails, error) {
+	// st := time.Now().UnixNano()
+	// defer func(st int64) {
+	// 	logger.ConsumerLog.Warnln("SendUEAuthenticationAuthenticateRequest took: ", time.Now().UnixNano()-st)
+	// }(st)
+
 	configuration := Nausf_UEAuthentication.NewConfiguration()
 	configuration.SetBasePath(ue.AusfUri)
 
