@@ -27,10 +27,6 @@ import (
 
 func SendUEAuthenticationAuthenticateRequest(ue *amf_context.AmfUe,
 	resynchronizationInfo *models.ResynchronizationInfo) (*models.UeAuthenticationCtx, *models.ProblemDetails, error) {
-	// st := time.Now().UnixNano()
-	// defer func(st int64) {
-	// 	logger.ConsumerLog.Warnln("SendUEAuthenticationAuthenticateRequest took: ", time.Now().UnixNano()-st)
-	// }(st)
 
 	configuration := Nausf_UEAuthentication.NewConfiguration()
 	configuration.SetBasePath(ue.AusfUri)
@@ -52,6 +48,10 @@ func SendUEAuthenticationAuthenticateRequest(ue *amf_context.AmfUe,
 	parts := strings.Split(ue.Suci, "-")
 	imsi := fmt.Sprintf("imsi-%s%s%s", parts[2], parts[3], parts[7])
 	authInfo.SupiOrSuci = imsi //ue.Suci
+	// defer func(st int64) {
+	// 	logger.GmmLog.Warnln("ueID ", imsi, " SendUEAuthenticationAuthenticateRequest took: ", (time.Now().UnixNano() - st))
+	// }(time.Now().UnixNano())
+
 	if mnc, err := strconv.Atoi(plmnId.Mnc); err != nil {
 		return nil, nil, err
 	} else {

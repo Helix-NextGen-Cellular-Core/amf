@@ -89,10 +89,10 @@ func SelectSmf(
 	snssai models.Snssai,
 	dnn string) (*amf_context.SmContext, uint8, error) {
 	var smfUri string
-	st := time.Now().UnixNano()
-	defer func() {
-		ue.GmmLog.Infof("SelectSmf took", time.Now().UnixNano()-st)
-	}()
+	// st := time.Now().UnixNano()
+	// defer func() {
+	// 	ue.GmmLog.Infof("SelectSmf took", time.Now().UnixNano()-st)
+	// }()
 
 	ue.GmmLog.Infof("Select SMF [snssai: %+v, dnn: %+v]", snssai, dnn)
 

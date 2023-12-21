@@ -18,6 +18,10 @@ import (
 )
 
 func AMPolicyControlCreate(ue *amf_context.AmfUe, anType models.AccessType) (*models.ProblemDetails, error) {
+	// defer func(st int64) {
+	// 	logger.GmmLog.Warnln("ueID ", ue.Supi, " AMPolicyControlCreate took: ", (time.Now().UnixNano() - st))
+	// }(time.Now().UnixNano())
+
 	configuration := Npcf_AMPolicy.NewConfiguration()
 	configuration.SetBasePath(ue.PcfUri)
 	client := Npcf_AMPolicy.NewAPIClient(configuration)
@@ -44,9 +48,7 @@ func AMPolicyControlCreate(ue *amf_context.AmfUe, anType models.AccessType) (*mo
 	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
 	defer cancel()
 	// TODO att time stame
-	// ue.GmmLog.Infoln("AMPolicyControlCreate: before PoliciesPost", time.Now().UnixNano())
 	res, httpResp, localErr := client.DefaultApi.PoliciesPost(ctx, policyAssociationRequest)
-	// ue.GmmLog.Infoln("AMPolicyControlCreate: after PoliciesPost", time.Now().UnixNano())
 	if localErr == nil {
 		locationHeader := httpResp.Header.Get("Location")
 		logger.ConsumerLog.Debugf("location header: %+v", locationHeader)

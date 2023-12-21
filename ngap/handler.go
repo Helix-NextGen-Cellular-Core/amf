@@ -11,7 +11,6 @@ import (
 	"encoding/hex"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/omec-project/amf/consumer"
 	"github.com/omec-project/amf/context"
@@ -1606,7 +1605,7 @@ func HandlePDUSessionResourceSetupResponse(ran *context.AmfRan, message *ngapTyp
 	var criticalityDiagnostics *ngapType.CriticalityDiagnostics
 
 	var ranUe *context.RanUe
-	start_time := time.Now().UnixNano()
+	// start_time := time.Now().UnixNano()
 	if ran == nil {
 		logger.NgapLog.Error("ran is nil")
 		return
@@ -1736,8 +1735,8 @@ func HandlePDUSessionResourceSetupResponse(ran *context.AmfRan, message *ngapTyp
 	if criticalityDiagnostics != nil {
 		printCriticalityDiagnostics(ran, criticalityDiagnostics)
 	}
-	end_time := time.Now().UnixNano()
-	ran.Log.Infof("HandlePDUSessionResourceSetupResponse time %d", end_time-start_time)
+	// end_time := time.Now().UnixNano()
+	// ran.Log.Infof("HandlePDUSessionResourceSetupResponse time %d", end_time-start_time)
 }
 
 func BuildAndSendN1N2Msg(ranUe *context.RanUe, n1Msg, n2Info []byte, N2SmInfoType models.N2SmInfoType, pduSessId int32) {
