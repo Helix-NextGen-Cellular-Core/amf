@@ -127,7 +127,7 @@ func FetchUeContextWithMobileIdentity(payload []byte) *context.AmfUe {
 			return nil
 		}
 	case nas.SecurityHeaderTypePlainNas:
-		// logger.CommLog.Infof("Security header type: PlainNas Message")
+		logger.CommLog.Infof("Security header type: PlainNas Message")
 		if err := msg.PlainNasDecode(&payload); err != nil {
 			return nil
 		}
@@ -202,7 +202,7 @@ func Decode(ue *context.AmfUe, accessType models.AccessType, payload []byte) (*n
 	if msg.SecurityHeaderType == nas.SecurityHeaderTypePlainNas {
 		// RRCEstablishmentCause 0 is for emergency service
 		if ue.SecurityContextAvailable && ue.RanUe[accessType].RRCEstablishmentCause != "0" {
-			// ue.NASLog.Warnln("Received Plain NAS message")
+			ue.NASLog.Warnln("Received Plain NAS message")
 			ue.MacFailed = false
 			// ue.SecurityContextAvailable = false
 			if err := msg.PlainNasDecode(&payload); err != nil {

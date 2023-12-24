@@ -674,7 +674,7 @@ func HandleUplinkNasTransport(ran *context.AmfRan, message *ngapType.NGAPPDU) {
 		ran.Log.Error("UplinkNasTransport is nil")
 		return
 	}
-	// ran.Log.Info("Handle Uplink Nas Transport")
+	ran.Log.Info("Handle Uplink Nas Transport")
 
 	for i := 0; i < len(uplinkNasTransport.ProtocolIEs.List); i++ {
 		ie := uplinkNasTransport.ProtocolIEs.List[i]
@@ -728,7 +728,7 @@ func HandleUplinkNasTransport(ran *context.AmfRan, message *ngapType.NGAPPDU) {
 		return
 	}
 
-	// ranUe.Log.Infof("Uplink NAS Transport (RAN UE NGAP ID: %d)", ranUe.RanUeNgapId)
+	ranUe.Log.Infof("Uplink NAS Transport (RAN UE NGAP ID: %d)", ranUe.RanUeNgapId)
 
 	if userLocationInformation != nil {
 		ranUe.UpdateLocation(userLocationInformation)
@@ -913,7 +913,7 @@ func HandleUEContextReleaseComplete(ran *context.AmfRan, message *ngapType.NGAPP
 		return
 	}
 
-	// ran.Log.Info("Handle UE Context Release Complete")
+	ran.Log.Info("Handle UE Context Release Complete")
 
 	for _, ie := range uEContextReleaseComplete.ProtocolIEs.List {
 		switch ie.Id.Value {
@@ -1420,7 +1420,7 @@ func HandleInitialUEMessage(ran *context.AmfRan, message *ngapType.NGAPPDU, sctp
 		}
 	}
 
-	// ran.Log.Info("Handle Initial UE Message")
+	ran.Log.Info("Handle Initial UE Message")
 
 	for _, ie := range initialUEMessage.ProtocolIEs.List {
 		switch ie.Id.Value {
@@ -1480,7 +1480,7 @@ func HandleInitialUEMessage(ran *context.AmfRan, message *ngapType.NGAPPDU, sctp
 		ngap_message.SendErrorIndication(ran, nil, nil, nil, &criticalityDiagnostics)
 	}
 
-	// ran.Log.Infoln("HandleInitialUEMessage ", st, " rANUENGAPID.Value ", rANUENGAPID.Value)
+	ran.Log.Infoln("HandleInitialUEMessage rANUENGAPID.Value ", rANUENGAPID.Value)
 
 	ranUe := ran.RanUeFindByRanUeNgapID(rANUENGAPID.Value)
 	if ranUe != nil && ranUe.AmfUe == nil {

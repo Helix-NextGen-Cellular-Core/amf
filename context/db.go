@@ -189,7 +189,7 @@ func DbFetch(collName string, filter bson.M) *AmfUe {
 		return nil
 	}
 
-	dbMutex.Lock()
+	dbMutex.Lock() // should it bere here? check Bilal
 	defer dbMutex.Unlock()
 	ue.RanUeLock.Lock()
 	defer ue.RanUeLock.Unlock()
@@ -203,7 +203,7 @@ func DbFetch(collName string, filter bson.M) *AmfUe {
 	ue.ProducerLog = logger.ProducerLog.WithField(logger.FieldSupi, fmt.Sprintf("SUPI:%s", ue.Supi))
 	ue.AmfInstanceName = os.Getenv("HOSTNAME")
 	ue.AmfInstanceIp = os.Getenv("POD_IP")
-	// ue.TxLog.Errorln("amfue fetched")
+	ue.TxLog.Errorln("amfue fetched")
 	return ue
 }
 
@@ -223,14 +223,16 @@ func DbFetchRanUeByRanUeNgapID(ranUeNgapID int64, ran *AmfRan) *RanUe {
 	//If so, then return the stored RanUE
 	//else return RanUE from newly fetched AmfUe
 	//and store in context
-	ue.RanUeLock.RLock()
-	defer ue.RanUeLock.RUnlock()
-	uEranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
-	ran.RanUeList = append(ran.RanUeList, uEranUe)
+
 	ranUe := ran.RanUeFindByRanUeNgapIDLocal(ranUeNgapID)
 	if ranUe != nil {
 		return ranUe
 	}
+	ue.RanUeLock.RLock()
+	// defer ue.RanUeLock.RUnlock()
+	uEranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS] // TODO - Bilal Change since start
+	// ran.RanUeList = append(ran.RanUeList, uEranUe)
+	ue.RanUeLock.RUnlock()
 	return uEranUe
 }
 

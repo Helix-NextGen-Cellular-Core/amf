@@ -717,7 +717,7 @@ func (amf *AMF) SendNFProfileUpdateToNrf() {
 				//stop keepAliveTimer if its running and start the timer
 				amf.StartKeepAliveTimer(prof)
 				self.NfId = nfId
-				// logger.CfgLog.Infof("Sent Register NF Instance with updated profile")
+				logger.CfgLog.Infof("Sent Register NF Instance with updated profile")
 			}
 		}
 	}

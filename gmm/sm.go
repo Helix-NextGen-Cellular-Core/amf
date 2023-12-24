@@ -433,6 +433,7 @@ func ContextSetup(state *fsm.State, event fsm.EventType, args fsm.ArgsType) {
 		}
 	case ContextSetupSuccessEvent:
 		logger.GmmLog.Debugln(event)
+		logger.GmmLog.Infoln("Registration_complete")
 		// amfUe := args[ArgAmfUe].(*context.AmfUe)
 		// amfUe.GmmLog.Infoln("Registration_complete ", time.Now().UnixNano())
 		// ranUeNgapIDVal := amfUe.RanUe[models.AccessType__3_GPP_ACCESS].RanUeNgapId

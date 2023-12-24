@@ -59,7 +59,7 @@ func SendNotification(ue *context.RanUe, nasMsg []byte) {
 }
 
 func SendIdentityRequest(ue *context.RanUe, typeOfIdentity uint8) {
-	// ue.AmfUe.GmmLog.Info("Send Identity Request")
+	ue.AmfUe.GmmLog.Info("Send Identity Request")
 
 	nasMsg, err := BuildIdentityRequest(typeOfIdentity)
 	if err != nil {
@@ -76,7 +76,7 @@ func SendAuthenticationRequest(ue *context.RanUe) {
 		return
 	}
 
-	// amfUe.GmmLog.Infof("Send Authentication Request")
+	amfUe.GmmLog.Infof("Send Authentication Request")
 
 	if amfUe.AuthenticationCtx == nil {
 		amfUe.GmmLog.Error("Authentication Context of UE is nil")
@@ -182,7 +182,7 @@ func SendRegistrationReject(ue *context.RanUe, cause5GMM uint8, eapMessage strin
 // eapSuccess: only used when authType is EAP-AKA', set the value to false if authType is not EAP-AKA'
 // eapMessage: only used when authType is EAP-AKA', set the value to "" if authType is not EAP-AKA'
 func SendSecurityModeCommand(ue *context.RanUe, eapSuccess bool, eapMessage string) {
-	// ue.AmfUe.GmmLog.Info("Send Security Mode Command")
+	ue.AmfUe.GmmLog.Info("Send Security Mode Command")
 
 	nasMsg, err := BuildSecurityModeCommand(ue.AmfUe, eapSuccess, eapMessage)
 	if err != nil {
@@ -265,7 +265,7 @@ func SendRegistrationAccept(
 	reactivationResult *[16]bool,
 	errPduSessionId, errCause []uint8,
 	pduSessionResourceSetupList *ngapType.PDUSessionResourceSetupListCxtReq) {
-	// ue.GmmLog.Info("Send Registration Accept")
+	ue.GmmLog.Info("Send Registration Accept")
 
 	nasMsg, err := BuildRegistrationAccept(ue, anType, pDUSessionStatus, reactivationResult, errPduSessionId, errCause)
 	if err != nil {

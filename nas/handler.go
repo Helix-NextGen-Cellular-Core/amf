@@ -60,7 +60,7 @@ func HandleNAS(ue *context.RanUe, procedureCode int64, nasPdu []byte) {
 		ue.AmfUe.Mutex.Lock()
 		defer ue.AmfUe.Mutex.Unlock()
 
-		// ue.Log.Info("Antype from new RanUe : ", ue.Ran.AnType)
+		ue.Log.Info("Antype from new RanUe : ", ue.Ran.AnType)
 		// AnType is set in SetRanId function. This is called
 		// when we handle NGSetup. In case of sctplb enabled,
 		// we dont call this function when AMF restarts. So we
@@ -102,7 +102,7 @@ func HandleNAS(ue *context.RanUe, procedureCode int64, nasPdu []byte) {
 }
 
 func DispatchMsg(amfUe *context.AmfUe, transInfo context.NasMsg) {
-	// amfUe.NASLog.Infof("Handle Nas Message")
+	amfUe.NASLog.Infof("Handle Nas Message")
 	msg, err := nas_security.Decode(amfUe, transInfo.AnType, transInfo.NasMsg)
 	if err != nil {
 		amfUe.NASLog.Errorln(err)

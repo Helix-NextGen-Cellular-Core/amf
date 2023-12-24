@@ -166,7 +166,7 @@ func SendDownlinkNasTransport(ue *context.RanUe, nasPdu []byte,
 		return
 	}
 
-	// ue.Log.Info("Send Downlink Nas Transport")
+	ue.Log.Info("Send Downlink Nas Transport")
 
 	if len(nasPdu) == 0 {
 		ue.Log.Errorf("Send DownlinkNasTransport Error: nasPdu is nil")

@@ -386,7 +386,7 @@ func HandleRegistrationRequest(ue *context.AmfUe, anType models.AccessType, proc
 		return fmt.Errorf("AmfUe is nil")
 	}
 
-	// ue.GmmLog.Info("Handle Registration Request")
+	ue.GmmLog.Info("Handle Registration Request")
 
 	if ue.RanUe[anType] == nil {
 		return fmt.Errorf("RanUe is nil")
@@ -579,6 +579,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 	// defer func(st int64) {
 	// 	logger.GmmLog.Warnln("ueID ", ue.Supi, " HandleInitialRegistration took: ", (time.Now().UnixNano() - st))
 	// }(time.Now().UnixNano())
+	ue.GmmLog.Infof("Handle Initial Registration")
 
 	amfSelf := context.AMF_Self()
 
@@ -1587,7 +1588,7 @@ func HandleConfigurationUpdateComplete(ue *context.AmfUe,
 }
 
 func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (bool, error) {
-	// ue.GmmLog.Info("Authentication procedure")
+	ue.GmmLog.Info("Authentication procedure")
 	// Check whether UE has SUCI and SUPI
 	// defer func(st int64) {
 	// 	logger.GmmLog.Warnln("ueID ", ue.Supi, " createUDMClientToUDR took: ", (time.Now().UnixNano() - st))
@@ -1667,6 +1668,7 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 		ue.GmmLog.Errorf("Nausf_UEAU Authenticate Request Failed: %+v", problemDetails)
 		return false, errors.New("Error Response from AUSF")
 	}
+
 	ue.AuthenticationCtx = response
 	ue.ABBA = []uint8{0x00, 0x00} // set ABBA value as described at TS 33.501 Annex A.7.1
 
@@ -2169,7 +2171,7 @@ func sendServiceAccept(ue *context.AmfUe, anType models.AccessType, ctxList ngap
 // TS 24.501 5.4.1
 func HandleAuthenticationResponse(ue *context.AmfUe, accessType models.AccessType,
 	authenticationResponse *nasMessage.AuthenticationResponse) error {
-	// ue.GmmLog.Info("Handle Authentication Response")
+	ue.GmmLog.Info("Handle Authentication Response")
 
 	if ue.T3560 != nil {
 		ue.T3560.Stop()
@@ -2369,7 +2371,7 @@ func HandleAuthenticationFailure(ue *context.AmfUe, anType models.AccessType,
 
 func HandleRegistrationComplete(ue *context.AmfUe, accessType models.AccessType,
 	registrationComplete *nasMessage.RegistrationComplete) error {
-	// ue.GmmLog.Info("Handle Registration Complete")
+	ue.GmmLog.Info("Handle Registration Complete")
 
 	if ue.T3550 != nil {
 		ue.T3550.Stop()
@@ -2401,7 +2403,7 @@ func HandleRegistrationComplete(ue *context.AmfUe, accessType models.AccessType,
 // TS 33.501 6.7.2
 func HandleSecurityModeComplete(ue *context.AmfUe, anType models.AccessType, procedureCode int64,
 	securityModeComplete *nasMessage.SecurityModeComplete) error {
-	// ue.GmmLog.Info("Handle Security Mode Complete")
+	ue.GmmLog.Info("Handle Security Mode Complete")
 
 	if ue.MacFailed {
 		return fmt.Errorf("NAS message integrity check failed")
