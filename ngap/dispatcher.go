@@ -26,7 +26,7 @@ import (
 )
 
 func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage) {
-	logger.ConsumerLog.Infoln("DispatchLb GnbId:%v GnbIp: %v %T\n", sctplbMsg.GnbId, sctplbMsg.GnbIpAddr, Amf2RanMsgChan)
+	logger.ConsumerLog.Infoln("DispatchLb GnbId:%v GnbIp: ", sctplbMsg.GnbId, " sctplbMsg.GnbIpAddr: ", Amf2RanMsgChan)
 	var ran *context.AmfRan
 	amfSelf := context.AMF_Self()
 
@@ -77,7 +77,7 @@ func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *s
 			rsp.Msgtype = sdcoreAmfServer.MsgType_REDIRECT_MSG
 			rsp.AmfId = os.Getenv("HOSTNAME")
 			/* TODO set only pod name, for this release setting pod ip to simplify logic in sctplb */
-			ran.Log.Infoln("DispatchLb, amfNgapId: %v is not for this amf instance, rediret to amf instance: %v %v", ngapId.Value, id.PodName, id.PodIp)
+			ran.Log.Infoln("DispatchLb, amfNgapId:", ngapId.Value, " is not for this amf instance, rediret to amf instance: ", id.PodName, " ", id.PodIp)
 			rsp.RedirectId = id.PodIp
 			rsp.GnbId = ran.GnbId
 			rsp.Msg = make([]byte, len(sctplbMsg.Msg))
@@ -92,7 +92,7 @@ func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *s
 			}
 			return
 		} else {
-			ran.Log.Infoln("DispatchLb, amfNgapId: %v for this amf instance\n", ngapId.Value)
+			ran.Log.Infoln("DispatchLb, amfNgapId: ", ngapId.Value, " for this amf instance")
 		}
 	}
 
