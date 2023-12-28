@@ -27,7 +27,7 @@ type NGAPHandler struct {
 
 // const readBufSize uint32 = 16384
 
-const readBufSize uint32 = 131072
+const readBufSize uint32 = 131072 //unit is byte
 
 // const readBufSize uint32 = 524288
 
