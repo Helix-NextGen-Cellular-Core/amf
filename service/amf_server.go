@@ -31,7 +31,7 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 		for {
 			select {
 			case msg1 := <-Amf2RanMsgChan:
-				log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
+				// log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
 				if err := srv.Send(msg1); err != nil {
 					log.Println("Error in sending response")
 				}
@@ -51,7 +51,7 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 				rsp.VerboseMsg = "Hello From AMF Pod !"
 				rsp.Msgtype = sdcoreAmfServer.MsgType_INIT_MSG
 				rsp.AmfId = os.Getenv("HOSTNAME")
-				log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v ", rsp.AmfId, rsp.VerboseMsg, rsp.Msgtype)
+				// log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v ", rsp.AmfId, rsp.VerboseMsg, rsp.Msgtype)
 				amfSelf := context.AMF_Self()
 				var ran *context.AmfRan
 				var ok bool
