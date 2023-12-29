@@ -27,7 +27,7 @@ type NGAPHandler struct {
 
 // const readBufSize uint32 = 16384
 
-const readBufSize uint32 = 131072
+const readBufSize uint32 = 131072 //unit is byte
 
 // set default read timeout to 2 seconds
 var readTimeout syscall.Timeval = syscall.Timeval{Sec: 2, Usec: 0}
