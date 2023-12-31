@@ -117,6 +117,7 @@ func listenAndServe(addr *sctp.SCTPAddr, handler NGAPHandler) {
 		}
 
 		// NOTE: We have already set this value to 32MB on system wide level using sysctl
+		// TODO: check for default size of 32 MB, if not then set it/stop the server
 		//
 		// if err := newConn.SetReadBuffer(int(readBufSize)); err != nil {
 		// 	logger.NgapLog.Errorf("Set read buffer error: %+v, accept failed", err)
