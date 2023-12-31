@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"github.com/omec-project/amf/context"
+	"github.com/omec-project/amf/logger"
 	"github.com/omec-project/amf/metrics"
 	"github.com/omec-project/amf/ngap"
 	"github.com/omec-project/amf/protos/sdcoreAmfServer"
@@ -25,7 +26,7 @@ type Server struct {
 
 func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServer) error {
 	var Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage
-	Amf2RanMsgChan = make(chan *sdcoreAmfServer.AmfMessage, 100)
+	Amf2RanMsgChan = make(chan *sdcoreAmfServer.AmfMessage, 1000)
 
 	go func() {
 		for {
@@ -35,6 +36,8 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 				if err := srv.Send(msg1); err != nil {
 					log.Println("Error in sending response")
 				}
+				// case <-ran.Exit:
+				// TBD how to clean in case sctplb crashed
 			}
 		}
 	}()
@@ -90,7 +93,51 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 						NfStatus: mi.NfStatusConnected, NfName: req.GnbId}}
 				metrics.StatWriter.PublishNfStatusEvent(gnbStatus)
 			} else {
-				ngap.DispatchLb(req, Amf2RanMsgChan)
+				var ran *context.AmfRan
+				amfSelf := context.AMF_Self()
+				if req.GnbId != "" {
+					var ok bool
+					ran, ok = amfSelf.AmfRanFindByGnbId(req.GnbId)
+					if !ok {
+						logger.NgapLog.Infof("Create a new NG connection for: %s", req.GnbId)
+						ran = amfSelf.NewAmfRanId(req.GnbId)
+						ran.Amf2RanMsgChan = Amf2RanMsgChan
+						logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN ", req.GnbId)
+					}
+				} else if req.GnbIpAddr != "" {
+					// it comes only for the first time/ NGSetup request
+					fmt.Printf("GnbIpAddress received but no GnbId\n")
+					ran = &context.AmfRan{}
+					ran.SupportedTAList = context.NewSupportedTAIList()
+					ran.Amf2RanMsgChan = Amf2RanMsgChan
+					ran.Log = logger.NgapLog.WithField(logger.FieldRanAddr, req.GnbIpAddr)
+					ran.GnbIp = req.GnbIpAddr
+					// context.AmfRanPool.Store(ran.GnbIp, ran)
+					logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN with GnbIpAddress ", req.GnbIpAddr)
+				}
+
+				if len(req.Msg) == 0 {
+					ran.Log.Infoln("DispatchLb, Messgae of size 0 -  ", req.GnbId)
+					ran.Log.Infof("RAN close the connection.")
+					ran.Remove()
+				} else {
+					if ran.Ran2AmfMsgChan == nil {
+						ran.Ran2AmfMsgChan = make(chan *sdcoreAmfServer.SctplbMessage, 1000)
+						log.Printf("Go routine created for GnbId: %v", req.GnbId)
+						go func() {
+							for {
+								select {
+								case req := <-ran.Ran2AmfMsgChan:
+									// log.Printf("received Response sctplb message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
+									ngap.DispatchLb(req, Amf2RanMsgChan)
+									// case <-ran.Exit:
+									// TBD how to clean in case ran is removed
+								}
+							}
+						}()
+					}
+					ran.Ran2AmfMsgChan <- req
+				}
 			}
 		}
 	}

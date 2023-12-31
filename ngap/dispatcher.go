@@ -30,31 +30,36 @@ func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *s
 	var ran *context.AmfRan
 	amfSelf := context.AMF_Self()
 
-	if sctplbMsg.GnbId != "" {
-		var ok bool
-		ran, ok = amfSelf.AmfRanFindByGnbId(sctplbMsg.GnbId)
-		if !ok {
-			logger.NgapLog.Infof("Create a new NG connection for: %s", sctplbMsg.GnbId)
-			ran = amfSelf.NewAmfRanId(sctplbMsg.GnbId)
-			ran.Amf2RanMsgChan = Amf2RanMsgChan
-			logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN ", sctplbMsg.GnbId)
-		}
-	} else if sctplbMsg.GnbIpAddr != "" {
-		fmt.Printf("GnbIpAddress received but no GnbId\n")
-		ran = &context.AmfRan{}
-		ran.SupportedTAList = context.NewSupportedTAIList()
-		ran.Amf2RanMsgChan = Amf2RanMsgChan
-		ran.Log = logger.NgapLog.WithField(logger.FieldRanAddr, sctplbMsg.GnbIpAddr)
-		ran.GnbIp = sctplbMsg.GnbIpAddr
-		// context.AmfRanPool.Store(ran.GnbIp, ran)
-		logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN with GnbIpAddress ", sctplbMsg.GnbIpAddr)
-	}
+	// if sctplbMsg.GnbId != "" {
+	// 	var ok bool
+	// 	ran, ok = amfSelf.AmfRanFindByGnbId(sctplbMsg.GnbId)
+	// 	if !ok {
+	// 		logger.NgapLog.Infof("Create a new NG connection for: %s", sctplbMsg.GnbId)
+	// 		ran = amfSelf.NewAmfRanId(sctplbMsg.GnbId)
+	// 		ran.Amf2RanMsgChan = Amf2RanMsgChan
+	// 		logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN ", sctplbMsg.GnbId)
+	// 	}
+	// } else if sctplbMsg.GnbIpAddr != "" {
+	// 	// it comes only for the first time/ NGSetup request
+	// 	fmt.Printf("GnbIpAddress received but no GnbId\n")
+	// 	ran = &context.AmfRan{}
+	// 	ran.SupportedTAList = context.NewSupportedTAIList()
+	// 	ran.Amf2RanMsgChan = Amf2RanMsgChan
+	// 	ran.Log = logger.NgapLog.WithField(logger.FieldRanAddr, sctplbMsg.GnbIpAddr)
+	// 	ran.GnbIp = sctplbMsg.GnbIpAddr
+	// 	// context.AmfRanPool.Store(ran.GnbIp, ran)
+	// 	logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN with GnbIpAddress ", sctplbMsg.GnbIpAddr)
+	// }
 
-	if len(sctplbMsg.Msg) == 0 {
-		ran.Log.Infoln("DispatchLb, Messgae of size 0 -  ", sctplbMsg.GnbId)
-		ran.Log.Infof("RAN close the connection.")
-		ran.Remove()
-		return
+	// if len(sctplbMsg.Msg) == 0 {
+	// 	ran.Log.Infoln("DispatchLb, Messgae of size 0 -  ", sctplbMsg.GnbId)
+	// 	ran.Log.Infof("RAN close the connection.")
+	// 	ran.Remove()
+	// 	return
+	// }
+
+	if ran.Ran2AmfMsgChan == nil {
+		ran.Ran2AmfMsgChan = make(chan *sdcoreAmfServer.SctplbMessage)
 	}
 
 	pdu, err := ngap.Decoder(sctplbMsg.Msg)

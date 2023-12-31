@@ -1613,20 +1613,20 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 	// TODO: consider ausf group id, Routing ID part of SUCI
 	if ue.AusfUri == "" {
 		param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
-		// resp := models.SearchResult{}
-		// for {
-		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
-		if err != nil {
-			ue.GmmLog.Error("AMF can not select an AUSF by NRF")
-			return false, err
+		resp := models.SearchResult{}
+		for {
+			resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
+			if err != nil {
+				ue.GmmLog.Error("AMF can not select an AUSF by NRF")
+				return false, err
+			}
+			if len(resp.NfInstances) > 0 {
+				break
+			} else {
+				time.Sleep(1 * time.Second)
+				ue.GmmLog.Error("AMF 0 AUSF returned by NRF")
+			}
 		}
-		// 	if len(resp.NfInstances) > 0 {
-		// 		break
-		// 	} else {
-		// 		// time.Sleep(1 * time.Second)
-		// 		ue.GmmLog.Error("AMF 0 AUSF returned by NRF")
-		// 	}
-		// }
 		// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_AUSF), " result: ", resp.NfInstances)
 		// select the first AUSF, TODO: select base on other info
 		nfInstanceIds := make([]string, 0, len(resp.NfInstances))
