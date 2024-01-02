@@ -1614,8 +1614,9 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 	if ue.AusfUri == "" {
 		param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
 		resp := models.SearchResult{}
+		var err error
 		for {
-			resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
+			resp, err = consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
 			if err != nil {
 				ue.GmmLog.Error("AMF can not select an AUSF by NRF")
 				return false, err
@@ -1663,7 +1664,7 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 			}
 		}
 		if ausfUri == "" {
-			err := fmt.Errorf("AMF can not select an AUSF by NRF")
+			err = fmt.Errorf("AMF can not select an AUSF by NRF")
 			ue.GmmLog.Errorf(err.Error())
 			return false, err
 		}

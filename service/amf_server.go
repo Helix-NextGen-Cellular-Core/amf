@@ -103,6 +103,7 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 						ran = amfSelf.NewAmfRanId(req.GnbId)
 						ran.Amf2RanMsgChan = Amf2RanMsgChan
 						logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN ", req.GnbId)
+						StartRan2AmfMsgChan(ran, req.GnbId, Amf2RanMsgChan)
 					}
 				} else if req.GnbIpAddr != "" {
 					// it comes only for the first time/ NGSetup request
@@ -112,7 +113,8 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 					ran.Amf2RanMsgChan = Amf2RanMsgChan
 					ran.Log = logger.NgapLog.WithField(logger.FieldRanAddr, req.GnbIpAddr)
 					ran.GnbIp = req.GnbIpAddr
-					// context.AmfRanPool.Store(ran.GnbIp, ran)
+					// context.AMF_Self().AmfRanPool.Store(ran.GnbIp, ran)
+					StartRan2AmfMsgChan(ran, req.GnbId, Amf2RanMsgChan)
 					logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN with GnbIpAddress ", req.GnbIpAddr)
 				}
 
@@ -121,27 +123,28 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 					ran.Log.Infof("RAN close the connection.")
 					ran.Remove()
 				} else {
-					if ran.Ran2AmfMsgChan == nil {
-						ran.Ran2AmfMsgChan = make(chan *sdcoreAmfServer.SctplbMessage, 1000)
-						log.Printf("Go routine created for GnbId: %v", req.GnbId)
-						go func() {
-							for {
-								select {
-								case req := <-ran.Ran2AmfMsgChan:
-									// log.Printf("received Response sctplb message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
-									ngap.DispatchLb(req, Amf2RanMsgChan)
-									// case <-ran.Exit:
-									// TBD how to clean in case ran is removed
-								}
-							}
-						}()
-					}
 					ran.Ran2AmfMsgChan <- req
 				}
 			}
 		}
 	}
 	return nil
+}
+
+func StartRan2AmfMsgChan(ran *context.AmfRan, GnbId string, Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage) {
+	ran.Ran2AmfMsgChan = make(chan *sdcoreAmfServer.SctplbMessage, 1000)
+	log.Printf("Go routine created for GnbId: %v", GnbId)
+	go func() {
+		for {
+			select {
+			case req := <-ran.Ran2AmfMsgChan:
+				// log.Printf("received Response sctplb message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
+				ngap.DispatchLb(ran, req, Amf2RanMsgChan)
+				// case <-ran.Exit:
+				// TBD how to clean in case ran is removed
+			}
+		}
+	}()
 }
 
 func StartGrpcServer(port int) {

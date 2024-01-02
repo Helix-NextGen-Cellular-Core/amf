@@ -25,9 +25,9 @@ import (
 	"github.com/omec-project/ngap/ngapType"
 )
 
-func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage) {
+func DispatchLb(ran *context.AmfRan, sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage) {
 	logger.ConsumerLog.Infoln("DispatchLb GnbId:%v GnbIp: ", sctplbMsg.GnbId, " sctplbMsg.GnbIpAddr: ", Amf2RanMsgChan)
-	var ran *context.AmfRan
+	// var ran *context.AmfRan
 	amfSelf := context.AMF_Self()
 
 	// if sctplbMsg.GnbId != "" {
@@ -58,9 +58,9 @@ func DispatchLb(sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *s
 	// 	return
 	// }
 
-	if ran.Ran2AmfMsgChan == nil {
-		ran.Ran2AmfMsgChan = make(chan *sdcoreAmfServer.SctplbMessage)
-	}
+	// if ran.Ran2AmfMsgChan == nil {
+	// 	ran.Ran2AmfMsgChan = make(chan *sdcoreAmfServer.SctplbMessage)
+	// }
 
 	pdu, err := ngap.Decoder(sctplbMsg.Msg)
 	if err != nil {
