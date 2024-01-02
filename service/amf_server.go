@@ -26,7 +26,7 @@ type Server struct {
 
 func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServer) error {
 	var Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage
-	Amf2RanMsgChan = make(chan *sdcoreAmfServer.AmfMessage, 1000)
+	Amf2RanMsgChan = make(chan *sdcoreAmfServer.AmfMessage, 10000)
 
 	go func() {
 		for {
@@ -103,7 +103,7 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 						ran = amfSelf.NewAmfRanId(req.GnbId)
 						ran.Amf2RanMsgChan = Amf2RanMsgChan
 						logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN ", req.GnbId)
-						StartRan2AmfMsgChan(ran, req.GnbId, Amf2RanMsgChan)
+						StartRan2AmfMsgChan(ran, req.GnbId)
 					}
 				} else if req.GnbIpAddr != "" {
 					// it comes only for the first time/ NGSetup request
@@ -114,7 +114,7 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 					ran.Log = logger.NgapLog.WithField(logger.FieldRanAddr, req.GnbIpAddr)
 					ran.GnbIp = req.GnbIpAddr
 					// context.AMF_Self().AmfRanPool.Store(ran.GnbIp, ran)
-					StartRan2AmfMsgChan(ran, req.GnbId, Amf2RanMsgChan)
+					StartRan2AmfMsgChan(ran, req.GnbIpAddr)
 					logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN with GnbIpAddress ", req.GnbIpAddr)
 				}
 
@@ -131,15 +131,15 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 	return nil
 }
 
-func StartRan2AmfMsgChan(ran *context.AmfRan, GnbId string, Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage) {
-	ran.Ran2AmfMsgChan = make(chan *sdcoreAmfServer.SctplbMessage, 1000)
-	log.Printf("Go routine created for GnbId: %v", GnbId)
+func StartRan2AmfMsgChan(ran *context.AmfRan, GnbId string) {
+	ran.Ran2AmfMsgChan = make(chan *sdcoreAmfServer.SctplbMessage, 10000)
+	log.Printf("Go routine created for GnbId/GnbIpAddr: %v", GnbId)
 	go func() {
 		for {
 			select {
 			case req := <-ran.Ran2AmfMsgChan:
 				// log.Printf("received Response sctplb message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
-				ngap.DispatchLb(ran, req, Amf2RanMsgChan)
+				ngap.DispatchLb(ran, req)
 				// case <-ran.Exit:
 				// TBD how to clean in case ran is removed
 			}

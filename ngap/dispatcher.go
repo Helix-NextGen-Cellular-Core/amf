@@ -25,8 +25,8 @@ import (
 	"github.com/omec-project/ngap/ngapType"
 )
 
-func DispatchLb(ran *context.AmfRan, sctplbMsg *sdcoreAmfServer.SctplbMessage, Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage) {
-	logger.ConsumerLog.Infoln("DispatchLb GnbId:%v GnbIp: ", sctplbMsg.GnbId, " sctplbMsg.GnbIpAddr: ", Amf2RanMsgChan)
+func DispatchLb(ran *context.AmfRan, sctplbMsg *sdcoreAmfServer.SctplbMessage) {
+	logger.ConsumerLog.Infoln("DispatchLb GnbId:%v GnbIp: ", sctplbMsg.GnbId, " sctplbMsg.GnbIpAddr: ", sctplbMsg.GnbIpAddr)
 	// var ran *context.AmfRan
 	amfSelf := context.AMF_Self()
 
@@ -88,7 +88,7 @@ func DispatchLb(ran *context.AmfRan, sctplbMsg *sdcoreAmfServer.SctplbMessage, A
 			rsp.GnbId = ran.GnbId
 			rsp.Msg = make([]byte, len(sctplbMsg.Msg))
 			copy(rsp.Msg, sctplbMsg.Msg)
-			ran.Amf2RanMsgChan = Amf2RanMsgChan
+			// ran.Amf2RanMsgChan = Amf2RanMsgChan
 			ran.Amf2RanMsgChan <- rsp
 			if ranUe != nil && ranUe.AmfUe != nil {
 				ranUe.AmfUe.Remove()
