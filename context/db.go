@@ -125,8 +125,6 @@ func SetupAmfCollection() {
 	if err != nil {
 		logger.ContextLog.Errorf("Create index failed on RanUeNgapID field.")
 	}*/
-	// StoreAmContextDbChannel = make(chan *AmfUe, 8192)
-	// DeleteAmContextDbChannel = make(chan *AmfUe, 8192)
 	StoreAmContextDbChannel = make(chan UeStateForDB, 8192)
 	DeleteAmContextDbChannel = make(chan UeStateForDB, 8192)
 
@@ -152,25 +150,25 @@ func ToBsonM(data *AmfUe) (ret bson.M) {
 
 func ProcessStoreContextInDB() {
 	for {
+
 		// rcvdAmfUE := <-StoreAmContextDbChannel
+		// // rcvdAmfUE.RanUeLock.RLock()
 		// amfUeBsonA := ToBsonM(rcvdAmfUE)
+		// // rcvdAmfUE.RanUeLock.RUnlock()
 		// filter := bson.M{"supi": rcvdAmfUE.Supi}
-		// MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
 		UeStateForDB := <-StoreAmContextDbChannel
 		filter := bson.M{"supi": UeStateForDB.Supi}
 		MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, UeStateForDB.AmfUeBsonA)
-
 	}
 }
 
 func StoreContextInDB(ue *AmfUe) {
 	self := AMF_Self()
 	if self.EnableDbStore {
+		// StoreAmContextDbChannel <- ue
 		amfUeBsonA := ToBsonM(ue)
 		UeStateForDB := UeStateForDB{amfUeBsonA, ue.Supi}
 		StoreAmContextDbChannel <- UeStateForDB
-
-		// StoreAmContextDbChannel <- ue
 		// amfUeBsonA := ToBsonM(ue)
 		// filter := bson.M{"supi": ue.Supi}
 		// MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)

@@ -642,6 +642,9 @@ func HandleNGSetupRequest(ran *context.AmfRan, message *ngapType.NGAPPDU) {
 			NfStatusData: mi.CNfStatus{NfType: mi.NfTypeGnb,
 				NfStatus: mi.NfStatusConnected, NfName: ran.GnbId}}
 		metrics.StatWriter.PublishNfStatusEvent(gnbStatus)
+		if context.AMF_Self().EnableScaling == true {
+			context.AMF_Self().AmfRanPool.Store(ran.GnbId, ran)
+		}
 	} else {
 		ngap_message.SendNGSetupFailure(ran, cause)
 	}

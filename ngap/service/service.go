@@ -23,11 +23,8 @@ type NGAPHandler struct {
 	HandleNotification func(conn net.Conn, notification sctp.Notification)
 }
 
-// const readBufSize uint32 = 8192
-
-// const readBufSize uint32 = 16384
-
-const readBufSize uint32 = 131072 //unit is byte
+// Need to check if NGAP may exceed this limit
+var MAX_SCTP_PKT_LEN uint32 = 2048
 
 // set default read timeout to 2 seconds
 var readTimeout syscall.Timeval = syscall.Timeval{Sec: 2, Usec: 0}
@@ -119,15 +116,18 @@ func listenAndServe(addr *sctp.SCTPAddr, handler NGAPHandler) {
 			logger.NgapLog.Debugln("Subscribe SCTP event[DATA_IO, SHUTDOWN_EVENT, ASSOCIATION_CHANGE]")
 		}
 
-		if err := newConn.SetReadBuffer(int(readBufSize)); err != nil {
-			logger.NgapLog.Errorf("Set read buffer error: %+v, accept failed", err)
-			if err = newConn.Close(); err != nil {
-				logger.NgapLog.Errorf("Close error: %+v", err)
-			}
-			continue
-		} else {
-			logger.NgapLog.Debugf("Set read buffer to %d bytes", readBufSize)
-		}
+		// NOTE: We have already set this value to 32MB on system wide level using sysctl
+		// TODO: check for default size of 32 MB, if not then set it/stop the server
+		//
+		// if err := newConn.SetReadBuffer(int(readBufSize)); err != nil {
+		// 	logger.NgapLog.Errorf("Set read buffer error: %+v, accept failed", err)
+		// 	if err = newConn.Close(); err != nil {
+		// 		logger.NgapLog.Errorf("Close error: %+v", err)
+		// 	}
+		// 	continue
+		// } else {
+		// 	logger.NgapLog.Debugf("Set read buffer to %d bytes", readBufSize)
+		// }
 
 		if err := newConn.SetReadTimeout(readTimeout); err != nil {
 			logger.NgapLog.Errorf("Set read timeout error: %+v, accept failed", err)
@@ -142,7 +142,7 @@ func listenAndServe(addr *sctp.SCTPAddr, handler NGAPHandler) {
 		logger.NgapLog.Infof("[AMF] SCTP Accept from: %s", newConn.RemoteAddr().String())
 		connections.Store(newConn, newConn)
 
-		go handleConnection(newConn, readBufSize, handler)
+		go handleConnection(newConn, MAX_SCTP_PKT_LEN, handler)
 	}
 }
 

@@ -715,38 +715,39 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 			}
 			time.Sleep(500 * time.Millisecond) // sleep a while when search NF Instance fail
 		}
-	}
+		// }
 
-	// logger.ConsumerLog.Warnln("PcfSelection took: ", time.Now().UnixNano()-startTime)
-	// TODO att time stame
-	// startTime = time.Now().UnixNano()
-	problemDetails, err := consumer.AMPolicyControlCreate(ue, anType)
-	// logger.ConsumerLog.Warnln("AMPolicyControlCreate took: %d\n", time.Now().UnixNano()-startTime)
+		// logger.ConsumerLog.Warnln("PcfSelection took: ", time.Now().UnixNano()-startTime)
+		// TODO att time stame
+		// startTime = time.Now().UnixNano()
+		problemDetails, err := consumer.AMPolicyControlCreate(ue, anType)
+		// logger.ConsumerLog.Warnln("AMPolicyControlCreate took: %d\n", time.Now().UnixNano()-startTime)
 
-	// TODO att time stame
-	if problemDetails != nil {
-		ue.GmmLog.Errorf("AM Policy Control Create Failed Problem[%+v]", problemDetails)
-		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
-		return fmt.Errorf("AMPolicy Control Create failed at PCF")
-	} else if err != nil {
-		ue.GmmLog.Errorf("AM Policy Control Create Error[%+v]", err)
-		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
-		return err
-	}
+		// TODO att time stame
+		if problemDetails != nil {
+			ue.GmmLog.Errorf("AM Policy Control Create Failed Problem[%+v]", problemDetails)
+			gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
+			return fmt.Errorf("AMPolicy Control Create failed at PCF")
+		} else if err != nil {
+			ue.GmmLog.Errorf("AM Policy Control Create Error[%+v]", err)
+			gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
+			return err
+		}
 
-	// Service Area Restriction are applicable only to 3GPP access
-	if anType == models.AccessType__3_GPP_ACCESS {
-		if ue.AmPolicyAssociation != nil && ue.AmPolicyAssociation.ServAreaRes != nil {
-			servAreaRes := ue.AmPolicyAssociation.ServAreaRes
-			if servAreaRes.RestrictionType == models.RestrictionType_ALLOWED_AREAS {
-				numOfallowedTAs := 0
-				for _, area := range servAreaRes.Areas {
-					numOfallowedTAs += len(area.Tacs)
+		// Service Area Restriction are applicable only to 3GPP access
+		if anType == models.AccessType__3_GPP_ACCESS {
+			if ue.AmPolicyAssociation != nil && ue.AmPolicyAssociation.ServAreaRes != nil {
+				servAreaRes := ue.AmPolicyAssociation.ServAreaRes
+				if servAreaRes.RestrictionType == models.RestrictionType_ALLOWED_AREAS {
+					numOfallowedTAs := 0
+					for _, area := range servAreaRes.Areas {
+						numOfallowedTAs += len(area.Tacs)
+					}
+					// if numOfallowedTAs < int(servAreaRes.MaxNumOfTAs) {
+					// 	TODO: based on AMF Policy, assign additional allowed area for UE,
+					// 	and the upper limit is servAreaRes.MaxNumOfTAs (TS 29.507 4.2.2.3)
+					// }
 				}
-				// if numOfallowedTAs < int(servAreaRes.MaxNumOfTAs) {
-				// 	TODO: based on AMF Policy, assign additional allowed area for UE,
-				// 	and the upper limit is servAreaRes.MaxNumOfTAs (TS 29.507 4.2.2.3)
-				// }
 			}
 		}
 	}
@@ -1206,54 +1207,55 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 		if ue.NudmUECMUri == "" || ue.NudmSDMUri == "" {
 			return fmt.Errorf("AMF can not select an UDM by NRF")
 		}
-	}
-	// logger.ConsumerLog.Warnln("UdmSelection took: ", time.Now().UnixNano()-st)
+		// }
+		// logger.ConsumerLog.Warnln("UdmSelection took: ", time.Now().UnixNano()-st)
 
-	// st := time.Now().UnixNano()
-	problemDetails, err := consumer.UeCmRegistration(ue, accessType, true)
-	if problemDetails != nil {
-		ue.GmmLog.Errorf("UECM_Registration Failed Problem[%+v]", problemDetails)
-	} else if err != nil {
-		ue.GmmLog.Errorf("UECM_Registration Error[%+v]", err)
-	}
-	// logger.ConsumerLog.Warnln("UeCmRegistration took: ", time.Now().UnixNano()-st)
+		// st := time.Now().UnixNano()
+		problemDetails, err := consumer.UeCmRegistration(ue, accessType, true)
+		if problemDetails != nil {
+			ue.GmmLog.Errorf("UECM_Registration Failed Problem[%+v]", problemDetails)
+		} else if err != nil {
+			ue.GmmLog.Errorf("UECM_Registration Error[%+v]", err)
+		}
+		// logger.ConsumerLog.Warnln("UeCmRegistration took: ", time.Now().UnixNano()-st)
 
-	// st = time.Now().UnixNano()
-	problemDetails, err = consumer.SDMGetAmData(ue)
-	if problemDetails != nil {
-		ue.GmmLog.Errorf("SDM_Get AmData Failed Problem[%+v]", problemDetails)
-	} else if err != nil {
-		return fmt.Errorf("SDM_Get AmData Error[%+v]", err)
-	}
-	// logger.ConsumerLog.Warnln("SDMGetAmData took: ", time.Now().UnixNano()-st)
+		// st = time.Now().UnixNano()
+		problemDetails, err = consumer.SDMGetAmData(ue)
+		if problemDetails != nil {
+			ue.GmmLog.Errorf("SDM_Get AmData Failed Problem[%+v]", problemDetails)
+		} else if err != nil {
+			return fmt.Errorf("SDM_Get AmData Error[%+v]", err)
+		}
+		// logger.ConsumerLog.Warnln("SDMGetAmData took: ", time.Now().UnixNano()-st)
 
-	// st = time.Now().UnixNano()
-	problemDetails, err = consumer.SDMGetSmfSelectData(ue)
-	if problemDetails != nil {
-		ue.GmmLog.Errorf("SDM_Get SmfSelectData Failed Problem[%+v]", problemDetails)
-	} else if err != nil {
-		return fmt.Errorf("SDM_Get SmfSelectData Error[%+v]", err)
-	}
-	// logger.ConsumerLog.Warnln("SDMGetSmfSelectData took: ", time.Now().UnixNano()-st)
+		// st = time.Now().UnixNano()
+		problemDetails, err = consumer.SDMGetSmfSelectData(ue)
+		if problemDetails != nil {
+			ue.GmmLog.Errorf("SDM_Get SmfSelectData Failed Problem[%+v]", problemDetails)
+		} else if err != nil {
+			return fmt.Errorf("SDM_Get SmfSelectData Error[%+v]", err)
+		}
+		// logger.ConsumerLog.Warnln("SDMGetSmfSelectData took: ", time.Now().UnixNano()-st)
 
-	// st = time.Now().UnixNano()
-	problemDetails, err = consumer.SDMGetUeContextInSmfData(ue)
-	if problemDetails != nil {
-		ue.GmmLog.Errorf("SDM_Get UeContextInSmfData Failed Problem[%+v]", problemDetails)
-	} else if err != nil {
-		return fmt.Errorf("SDM_Get UeContextInSmfData Error[%+v]", err)
-	}
-	// logger.ConsumerLog.Warnln("SDMGetUeContextInSmfData took: ", time.Now().UnixNano()-st)
+		// st = time.Now().UnixNano()
+		problemDetails, err = consumer.SDMGetUeContextInSmfData(ue)
+		if problemDetails != nil {
+			ue.GmmLog.Errorf("SDM_Get UeContextInSmfData Failed Problem[%+v]", problemDetails)
+		} else if err != nil {
+			return fmt.Errorf("SDM_Get UeContextInSmfData Error[%+v]", err)
+		}
+		// logger.ConsumerLog.Warnln("SDMGetUeContextInSmfData took: ", time.Now().UnixNano()-st)
 
-	// st = time.Now().UnixNano()
-	problemDetails, err = consumer.SDMSubscribe(ue)
-	if problemDetails != nil {
-		ue.GmmLog.Errorf("SDM Subscribe Failed Problem[%+v]", problemDetails)
-	} else if err != nil {
-		ue.GmmLog.Errorf("SDM Subscribe Error[%+v]", err)
-		return fmt.Errorf("SDM Subscribe Error[%+v]", err)
+		// st = time.Now().UnixNano()
+		problemDetails, err = consumer.SDMSubscribe(ue)
+		if problemDetails != nil {
+			ue.GmmLog.Errorf("SDM Subscribe Failed Problem[%+v]", problemDetails)
+		} else if err != nil {
+			ue.GmmLog.Errorf("SDM Subscribe Error[%+v]", err)
+			return fmt.Errorf("SDM Subscribe Error[%+v]", err)
+		}
+		// logger.ConsumerLog.Warnln("SDMSubscribe took: ", time.Now().UnixNano()-st)
 	}
-	// logger.ConsumerLog.Warnln("SDMSubscribe took: ", time.Now().UnixNano()-st)
 
 	ue.SubscriptionDataValid = true
 	// logger.ConsumerLog.Warnln("communicateWithUDM took: ", time.Now().UnixNano()-start_time)
@@ -1607,14 +1609,24 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 	}
 
 	amfSelf := context.AMF_Self()
-
+	firstRequest := true
 	// TODO: consider ausf group id, Routing ID part of SUCI
 	if ue.AusfUri == "" {
 		param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
-		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
-		if err != nil {
-			ue.GmmLog.Error("AMF can not select an AUSF by NRF")
-			return false, err
+		resp := models.SearchResult{}
+		var err error
+		for {
+			resp, err = consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
+			if err != nil {
+				ue.GmmLog.Error("AMF can not select an AUSF by NRF")
+				return false, err
+			}
+			if len(resp.NfInstances) > 0 {
+				break
+			} else {
+				time.Sleep(1 * time.Second)
+				ue.GmmLog.Error("AMF 0 AUSF returned by NRF")
+			}
 		}
 		// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_AUSF), " result: ", resp.NfInstances)
 		// select the first AUSF, TODO: select base on other info
@@ -1657,19 +1669,23 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 			return false, err
 		}
 		ue.AusfUri = ausfUri
+	} else {
+		firstRequest = false
 	}
-	// st = time.Now().UnixNano()
-	response, problemDetails, err := consumer.SendUEAuthenticationAuthenticateRequest(ue, nil)
-	// logger.ConsumerLog.Warnln("SendUEAuthenticationAuthenticateRequest took: ", time.Now().UnixNano()-st)
-	if err != nil {
-		ue.GmmLog.Errorf("Nausf_UEAU Authenticate Request Error: %+v", err)
-		return false, errors.New("Authentication procedure failed")
-	} else if problemDetails != nil {
-		ue.GmmLog.Errorf("Nausf_UEAU Authenticate Request Failed: %+v", problemDetails)
-		return false, errors.New("Error Response from AUSF")
+	if firstRequest {
+		// st = time.Now().UnixNano()
+		response, problemDetails, err := consumer.SendUEAuthenticationAuthenticateRequest(ue, nil)
+		// logger.ConsumerLog.Warnln("SendUEAuthenticationAuthenticateRequest took: ", time.Now().UnixNano()-st)
+		if err != nil {
+			ue.GmmLog.Errorf("Nausf_UEAU Authenticate Request Error: %+v", err)
+			return false, errors.New("Authentication procedure failed")
+		} else if problemDetails != nil {
+			ue.GmmLog.Errorf("Nausf_UEAU Authenticate Request Failed: %+v", problemDetails)
+			return false, errors.New("Error Response from AUSF")
+		}
+		ue.AuthenticationCtx = response
 	}
 
-	ue.AuthenticationCtx = response
 	ue.ABBA = []uint8{0x00, 0x00} // set ABBA value as described at TS 33.501 Annex A.7.1
 
 	// st = time.Now().UnixNano()
