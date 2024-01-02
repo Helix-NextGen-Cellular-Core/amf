@@ -45,8 +45,8 @@ type AmfRan struct {
 	/* RAN UE List */
 	RanUeList []*RanUe `json:"-"` // RanUeNgapId as key
 
-	Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage `json:"-"`
-	Ran2AmfMsgChan chan *sdcoreAmfServer.SctplbMessage
+	Amf2RanMsgChan chan *sdcoreAmfServer.AmfMessage    `json:"-"`
+	Ran2AmfMsgChan chan *sdcoreAmfServer.SctplbMessage `json:"-"`
 	/* logger */
 	Log *logrus.Entry `json:"-"`
 }

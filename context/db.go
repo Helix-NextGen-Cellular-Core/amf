@@ -156,9 +156,10 @@ func ProcessStoreContextInDB() {
 		// amfUeBsonA := ToBsonM(rcvdAmfUE)
 		// // rcvdAmfUE.RanUeLock.RUnlock()
 		// filter := bson.M{"supi": rcvdAmfUE.Supi}
-		UeStateForDB := <-StoreAmContextDbChannel
-		filter := bson.M{"supi": UeStateForDB.Supi}
-		MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, UeStateForDB.AmfUeBsonA)
+		ueState := <-StoreAmContextDbChannel
+		// UeState = UeState.(UeStateForDB)
+		filter := bson.M{"supi": ueState.Supi}
+		MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, ueState.AmfUeBsonA)
 	}
 }
 
@@ -167,8 +168,8 @@ func StoreContextInDB(ue *AmfUe) {
 	if self.EnableDbStore {
 		// StoreAmContextDbChannel <- ue
 		amfUeBsonA := ToBsonM(ue)
-		UeStateForDB := UeStateForDB{amfUeBsonA, ue.Supi}
-		StoreAmContextDbChannel <- UeStateForDB
+		ueState := UeStateForDB{amfUeBsonA, ue.Supi}
+		StoreAmContextDbChannel <- ueState
 		// amfUeBsonA := ToBsonM(ue)
 		// filter := bson.M{"supi": ue.Supi}
 		// MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
@@ -179,8 +180,8 @@ func ProcessDeleteContextFromDB() {
 	for {
 		// rcvdAmfUE := <-DeleteAmContextDbChannel
 		// filter := bson.M{"supi": rcvdAmfUE.Supi}
-		UeStateForDB := <-DeleteAmContextDbChannel
-		filter := bson.M{"supi": UeStateForDB.Supi}
+		ueState := <-DeleteAmContextDbChannel
+		filter := bson.M{"supi": ueState.Supi}
 		MongoDBLibrary.RestfulAPIDeleteOne(AmfUeDataColl, filter)
 	}
 }
@@ -191,8 +192,8 @@ func DeleteContextFromDB(ue *AmfUe) {
 		// DeleteAmContextDbChannel <- ue
 		// filter := bson.M{"supi": ue.Supi}
 		// MongoDBLibrary.RestfulAPIDeleteOne(AmfUeDataColl, filter)
-		UeStateForDB := UeStateForDB{nil, ue.Supi}
-		DeleteAmContextDbChannel <- UeStateForDB
+		ueState := UeStateForDB{nil, ue.Supi}
+		DeleteAmContextDbChannel <- ueState
 	}
 }
 
