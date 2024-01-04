@@ -589,6 +589,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 
 	// Registration with AMF re-allocation (TS 23.502 4.2.2.2.3)
 	if len(ue.SubscribedNssai) == 0 {
+		ue.GmmLog.Errorf("getSubscribedNssai was called!")
 		getSubscribedNssai(ue)
 	}
 
@@ -712,7 +713,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 						models.NfServiceStatus_REGISTERED)
 					if pcfUri != "" {
 						ue.PcfId = nfProfile.NfInstanceId
-						logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_PCF), " NF is: ", nfProfile.Ipv4Addresses)
+						logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_PCF), " NF is: ", nfProfile.Ipv4Addresses)
 						break
 					}
 				}
@@ -1216,7 +1217,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 			uecmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
 			sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
 			if uecmUri != "" && sdmUri != "" {
-				logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_UDM), " NF is: ", nfProfile.Ipv4Addresses)
+				logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_UDM), " NF is: ", nfProfile.Ipv4Addresses)
 				break
 			}
 		}
@@ -1687,7 +1688,7 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 			ue.AusfId = nfProfile.NfInstanceId
 			ausfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NAUSF_AUTH, models.NfServiceStatus_REGISTERED)
 			if ausfUri != "" {
-				logger.ConsumerLog.Warnln("for Ue: ", imsi, " for targetNfType ", string(models.NfType_AUSF), " NF is: ", nfProfile.Ipv4Addresses)
+				logger.ConsumerLog.Warnln("for Ue: ", imsi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_AUSF), " NF is: ", nfProfile.Ipv4Addresses)
 				break
 			}
 		}

@@ -115,7 +115,7 @@ func SearchUdmSdmInstance(ue *amf_context.AmfUe, nrfUri string, targetNfType, re
 		uecmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
 		sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
 		if sdmUri != "" {
-			logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " for targetNfType ", string(targetNfType), " NF is: ", nfProfile.Ipv4Addresses)
+			logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(targetNfType), " NF is: ", nfProfile.Ipv4Addresses)
 			break
 		}
 	}
