@@ -9,11 +9,11 @@ package consumer
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"net/url"
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/antihax/optional"
@@ -183,10 +183,13 @@ func SelectSmf(
 
 	nfInstanceIndex := 0
 	if amf_context.AMF_Self().EnableScaling == true {
-		h := fnv.New32a()
-		h.Write([]byte(ue.Supi))
-		key := int(h.Sum32())
-		nfInstanceIndex = int(key % len(result.NfInstances))
+		// h := fnv.New32a()
+		// h.Write([]byte(ue.Supi))
+		// key := int(h.Sum32())
+		// nfInstanceIndex = int(key % len(result.NfInstances))
+		parts := strings.Split(ue.Supi, "-")
+		imsiNumber, _ := strconv.Atoi(parts[1])
+		nfInstanceIndex = imsiNumber % len(result.NfInstances)
 	}
 
 	for _, nfProfile := range result.NfInstances {
@@ -196,7 +199,7 @@ func SelectSmf(
 		smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
 		smContext.SetSmfID(nfProfile.NfInstanceId)
 		smContext.SetSmfUri(smfUri)
-		logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
+		logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
 		break
 	}
 

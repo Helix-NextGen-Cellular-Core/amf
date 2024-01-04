@@ -8,9 +8,10 @@ package consumer
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"net/http"
 	"sort"
+	"strconv"
+	"strings"
 
 	nrf_cache "github.com/omec-project/nrf/nrfcache"
 
@@ -96,11 +97,14 @@ func SearchUdmSdmInstance(ue *amf_context.AmfUe, nrfUri string, targetNfType, re
 
 	nfInstanceIndex := 0
 	if amf_context.AMF_Self().EnableScaling == true {
-		h := fnv.New32a()
-		h.Write([]byte(ue.Supi))
-		// logger.ConsumerLog.Warnln("SearchUdmSdmInstance: ue.Supi: ", ue.Supi)
-		key := int(h.Sum32())
-		nfInstanceIndex = int(key % len(resp.NfInstances))
+		// h := fnv.New32a()
+		// h.Write([]byte(ue.Supi))
+		// // logger.ConsumerLog.Warnln("SearchUdmSdmInstance: ue.Supi: ", ue.Supi)
+		// key := int(h.Sum32())
+		// nfInstanceIndex = int(key % len(resp.NfInstances))
+		parts := strings.Split(ue.Supi, "-")
+		imsiNumber, _ := strconv.Atoi(parts[1])
+		nfInstanceIndex = imsiNumber % len(resp.NfInstances)
 	}
 	var sdmUri, uecmUri string
 	for _, nfProfile := range resp.NfInstances {
@@ -111,7 +115,7 @@ func SearchUdmSdmInstance(ue *amf_context.AmfUe, nrfUri string, targetNfType, re
 		uecmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
 		sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
 		if sdmUri != "" {
-			logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " for targetNfType ", string(targetNfType), " NF is: ", nfProfile.Ipv4Addresses)
+			logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(targetNfType), " NF is: ", nfProfile.Ipv4Addresses)
 			break
 		}
 	}

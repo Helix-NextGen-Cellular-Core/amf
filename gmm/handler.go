@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"reflect"
 	"sort"
 	"strconv"
@@ -590,6 +589,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 
 	// Registration with AMF re-allocation (TS 23.502 4.2.2.2.3)
 	if len(ue.SubscribedNssai) == 0 {
+		ue.GmmLog.Errorf("getSubscribedNssai was called!")
 		getSubscribedNssai(ue)
 	}
 
@@ -688,11 +688,14 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 
 				nfInstanceIndex := 0
 				if amfSelf.EnableScaling == true {
-					h := fnv.New32a()
-					h.Write([]byte(ue.Supi))
-					// logger.ConsumerLog.Warnln("PCF: ue.Supi: ", ue.Supi)
-					key := int(h.Sum32())
-					nfInstanceIndex = int(key % len(resp.NfInstances))
+					// h := fnv.New32a()
+					// h.Write([]byte(ue.Supi))
+					// // logger.ConsumerLog.Warnln("PCF: ue.Supi: ", ue.Supi)
+					// key := int(h.Sum32())
+					// nfInstanceIndex = int(key % len(resp.NfInstances))
+					parts := strings.Split(ue.Supi, "-")
+					imsiNumber, _ := strconv.Atoi(parts[1])
+					nfInstanceIndex = imsiNumber % len(resp.NfInstances)
 				}
 				var pcfUri string
 				for _, nfProfile := range resp.NfInstances {
@@ -703,7 +706,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 						models.NfServiceStatus_REGISTERED)
 					if pcfUri != "" {
 						ue.PcfId = nfProfile.NfInstanceId
-						logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_PCF), " NF is: ", nfProfile.Ipv4Addresses)
+						logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_PCF), " NF is: ", nfProfile.Ipv4Addresses)
 						break
 					}
 				}
@@ -1179,11 +1182,14 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 
 		nfInstanceIndex := 0
 		if amfSelf.EnableScaling == true {
-			h := fnv.New32a()
-			h.Write([]byte(ue.Supi))
-			// logger.ConsumerLog.Warnln("communicateWithUDM: ue.Supi: ", ue.Supi)
-			key := int(h.Sum32())
-			nfInstanceIndex = int(key % len(resp.NfInstances))
+			// h := fnv.New32a()
+			// h.Write([]byte(ue.Supi))
+			// // logger.ConsumerLog.Warnln("communicateWithUDM: ue.Supi: ", ue.Supi)
+			// key := int(h.Sum32())
+			// nfInstanceIndex = int(key % len(resp.NfInstances))
+			parts := strings.Split(ue.Supi, "-")
+			imsiNumber, _ := strconv.Atoi(parts[1])
+			nfInstanceIndex = imsiNumber % len(resp.NfInstances)
 		}
 		var uecmUri, sdmUri string
 		for _, nfProfile := range resp.NfInstances {
@@ -1194,7 +1200,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 			uecmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_UECM, models.NfServiceStatus_REGISTERED)
 			sdmUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
 			if uecmUri != "" && sdmUri != "" {
-				logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_UDM), " NF is: ", nfProfile.Ipv4Addresses)
+				logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_UDM), " NF is: ", nfProfile.Ipv4Addresses)
 				break
 			}
 		}
@@ -1645,14 +1651,17 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 
 		nfInstanceIndex := 0
 		parts := strings.Split(ue.Suci, "-")
-		imsi := fmt.Sprintf("imsi-%s%s%s", parts[2], parts[3], parts[7])
+		// imsi := fmt.Sprintf("imsi-%s%s%s", parts[2], parts[3], parts[7])
+		imsi := fmt.Sprintf("%s%s%s", parts[2], parts[3], parts[7])
 		if amfSelf.EnableScaling == true {
-			h := fnv.New32a()
-			// h.Write([]byte(ue.Suci))
-			h.Write([]byte(imsi))
-			// logger.ConsumerLog.Warnln("AUSF: ue.Suci: ", ue.Suci, " imsi ", imsi)
-			key := int(h.Sum32())
-			nfInstanceIndex = int(key % len(resp.NfInstances))
+			// h := fnv.New32a()
+			// // h.Write([]byte(ue.Suci))
+			// h.Write([]byte(imsi))
+			// // logger.ConsumerLog.Warnln("AUSF: ue.Suci: ", ue.Suci, " imsi ", imsi)
+			// key := int(h.Sum32())
+			// nfInstanceIndex = int(key % len(resp.NfInstances))
+			imsiNumber, _ := strconv.Atoi(imsi)
+			nfInstanceIndex = imsiNumber % len(resp.NfInstances)
 		}
 		var ausfUri string
 		for _, nfProfile := range resp.NfInstances {
@@ -1662,7 +1671,7 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 			ue.AusfId = nfProfile.NfInstanceId
 			ausfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NAUSF_AUTH, models.NfServiceStatus_REGISTERED)
 			if ausfUri != "" {
-				logger.ConsumerLog.Warnln("for Ue: ", imsi, " for targetNfType ", string(models.NfType_AUSF), " NF is: ", nfProfile.Ipv4Addresses)
+				logger.ConsumerLog.Warnln("for Ue: ", imsi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_AUSF), " NF is: ", nfProfile.Ipv4Addresses)
 				break
 			}
 		}
