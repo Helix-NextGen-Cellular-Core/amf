@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"reflect"
 	"sort"
 	"strconv"
@@ -695,11 +694,14 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 
 				nfInstanceIndex := 0
 				if amfSelf.EnableScaling == true {
-					h := fnv.New32a()
-					h.Write([]byte(ue.Supi))
-					// logger.ConsumerLog.Warnln("PCF: ue.Supi: ", ue.Supi)
-					key := int(h.Sum32())
-					nfInstanceIndex = int(key % len(resp.NfInstances))
+					// h := fnv.New32a()
+					// h.Write([]byte(ue.Supi))
+					// // logger.ConsumerLog.Warnln("PCF: ue.Supi: ", ue.Supi)
+					// key := int(h.Sum32())
+					// nfInstanceIndex = int(key % len(resp.NfInstances))
+					parts := strings.Split(ue.Supi, "-")
+					imsiNumber, _ := strconv.Atoi(parts[1])
+					nfInstanceIndex = imsiNumber % len(resp.NfInstances)
 				}
 				var pcfUri string
 				for _, nfProfile := range resp.NfInstances {
@@ -1196,11 +1198,14 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 
 		nfInstanceIndex := 0
 		if amfSelf.EnableScaling == true {
-			h := fnv.New32a()
-			h.Write([]byte(ue.Supi))
-			// logger.ConsumerLog.Warnln("communicateWithUDM: ue.Supi: ", ue.Supi)
-			key := int(h.Sum32())
-			nfInstanceIndex = int(key % len(resp.NfInstances))
+			// h := fnv.New32a()
+			// h.Write([]byte(ue.Supi))
+			// // logger.ConsumerLog.Warnln("communicateWithUDM: ue.Supi: ", ue.Supi)
+			// key := int(h.Sum32())
+			// nfInstanceIndex = int(key % len(resp.NfInstances))
+			parts := strings.Split(ue.Supi, "-")
+			imsiNumber, _ := strconv.Atoi(parts[1])
+			nfInstanceIndex = imsiNumber % len(resp.NfInstances)
 		}
 		var uecmUri, sdmUri string
 		for _, nfProfile := range resp.NfInstances {
@@ -1662,14 +1667,17 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 
 		nfInstanceIndex := 0
 		parts := strings.Split(ue.Suci, "-")
-		imsi := fmt.Sprintf("imsi-%s%s%s", parts[2], parts[3], parts[7])
+		// imsi := fmt.Sprintf("imsi-%s%s%s", parts[2], parts[3], parts[7])
+		imsi := fmt.Sprintf("%s%s%s", parts[2], parts[3], parts[7])
 		if amfSelf.EnableScaling == true {
-			h := fnv.New32a()
-			// h.Write([]byte(ue.Suci))
-			h.Write([]byte(imsi))
-			// logger.ConsumerLog.Warnln("AUSF: ue.Suci: ", ue.Suci, " imsi ", imsi)
-			key := int(h.Sum32())
-			nfInstanceIndex = int(key % len(resp.NfInstances))
+			// h := fnv.New32a()
+			// // h.Write([]byte(ue.Suci))
+			// h.Write([]byte(imsi))
+			// // logger.ConsumerLog.Warnln("AUSF: ue.Suci: ", ue.Suci, " imsi ", imsi)
+			// key := int(h.Sum32())
+			// nfInstanceIndex = int(key % len(resp.NfInstances))
+			imsiNumber, _ := strconv.Atoi(imsi)
+			nfInstanceIndex = imsiNumber % len(resp.NfInstances)
 		}
 		var ausfUri string
 		for _, nfProfile := range resp.NfInstances {
