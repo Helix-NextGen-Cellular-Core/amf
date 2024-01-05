@@ -254,7 +254,7 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 						ue.StoreSmContext(pduSessionID, newSmContext)
 						ue.GmmLog.Infof("create smContext[pduSessionID: %d] Success", pduSessionID)
 						// TODO: handle response(response N2SmInfo to RAN if exists)
-						ue.PublishUeCtxtInfo()
+						// ue.PublishUeCtxtInfo()
 					}
 				}
 			case nasMessage.ULNASTransportRequestTypeModificationRequest:
@@ -367,7 +367,7 @@ func forward5GSMMessageToSMF(
 			ngap_message.SendDownlinkNasTransport(ue.RanUe[accessType], n1Msg, nil)
 		}
 	}
-	ue.PublishUeCtxtInfo()
+	// ue.PublishUeCtxtInfo()
 	return nil
 }
 
@@ -589,7 +589,6 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 
 	// Registration with AMF re-allocation (TS 23.502 4.2.2.2.3)
 	if len(ue.SubscribedNssai) == 0 {
-		ue.GmmLog.Errorf("getSubscribedNssai was called!")
 		getSubscribedNssai(ue)
 	}
 
@@ -673,7 +672,7 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 		for {
 			resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_PCF, models.NfType_AMF, &param)
 			// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_PCF), " result: ", resp.NfInstances)
-			if err != nil {
+			if err != nil || len(resp.NfInstances) == 0 {
 				ue.GmmLog.Error("AMF can not select an PCF by NRF")
 				time.Sleep(500 * time.Millisecond) // sleep a while when search NF Instance fail
 				retryCount--
@@ -1174,7 +1173,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 		retryCount := 5
 		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_UDM, models.NfType_AMF, &param)
 		for {
-			if err != nil {
+			if err != nil || len(resp.NfInstances) == 0 {
 				ue.GmmLog.Error("AMF can not select an UDM by NRF")
 				time.Sleep(500 * time.Millisecond)
 				retryCount--
@@ -1636,24 +1635,22 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 	// TODO: consider ausf group id, Routing ID part of SUCI
 	if ue.AusfUri == "" {
 		param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{}
-		// retryCount := 5
+		retryCount := 5
 		resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
-		// for {
-		if err != nil {
-			ue.GmmLog.Error("AMF can not select an AUSF by NRF")
-			return false, err
+		for {
+			if err != nil || len(resp.NfInstances) == 0 {
+				time.Sleep(5 * time.Millisecond)
+				retryCount--
+				if retryCount == 0 {
+					ue.GmmLog.Error("AMF can not select an AUSF by NRF")
+					return false, err
+				}
+				ue.GmmLog.Error("AMF 0 AUSF returned by NRF")
+			} else {
+				break
+			}
+			resp, err = consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_AUSF, models.NfType_AMF, &param)
 		}
-		// 	if len(resp.NfInstances) > 0 {
-		// 		break
-		// 	} else {
-		// 		retryCount--
-		// 		time.Sleep(5 * time.Millisecond)
-		// 		if retryCount == 0 {
-		// 			return false, err
-		// 		}
-		// 		ue.GmmLog.Error("AMF 0 AUSF returned by NRF")
-		// 	}
-		// }
 		// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_AUSF), " result: ", resp.NfInstances)
 		// select the first AUSF, TODO: select base on other info
 		nfInstanceIds := make([]string, 0, len(resp.NfInstances))
