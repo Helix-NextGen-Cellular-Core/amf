@@ -83,7 +83,7 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 	ulNasTransport *nasMessage.ULNASTransport) error {
 	var pduSessionID int32
 
-	// ue.GmmLog.Info("Transport 5GSM Message to SMF")
+	ue.GmmLog.Info("Transport 5GSM Message to SMF")
 	// start_time := time.Now().UnixNano()
 	// defer func() {
 	// 	ue.GmmLog.Infof("transport5GSMMessage took %d", time.Now().UnixNano()-start_time)

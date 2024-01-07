@@ -114,6 +114,7 @@ func SelectSmf(
 		}
 
 		response, problemDetails, err := NSSelectionGetForPduSession(ue, snssai)
+		ue.GmmLog.Infof("NSSelectionGetForPduSession was called - talk to NSSF")
 		if err != nil {
 			err = fmt.Errorf("NSSelection Get Error[%+v]", err)
 			return nil, nasMessage.Cause5GMMPayloadWasNotForwarded, err

@@ -159,10 +159,42 @@ func SearchNssfNSSelectionInstance(ue *amf_context.AmfUe, nrfUri string, targetN
 	// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(targetNfType), " result: ", resp.NfInstances)
 	// select the first NSSF, TODO: select base on other info
 	var nssfUri string
+	// for _, nfProfile := range resp.NfInstances {
+	// 	ue.NssfId = nfProfile.NfInstanceId
+	// 	nssfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NNSSF_NSSELECTION, models.NfServiceStatus_REGISTERED)
+	// 	if nssfUri != "" {
+	// 		break
+	// 	}
+	// }
+	nfInstanceIds := make([]string, 0, len(resp.NfInstances))
 	for _, nfProfile := range resp.NfInstances {
+		nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+	}
+	sort.Strings(nfInstanceIds)
+	nfInstanceIdIndexMap := make(map[string]int)
+	for index, value := range nfInstanceIds {
+		nfInstanceIdIndexMap[value] = index
+	}
+
+	nfInstanceIndex := 0
+	if amf_context.AMF_Self().EnableScaling == true {
+		// h := fnv.New32a()
+		// h.Write([]byte(ue.Supi))
+		// // logger.ConsumerLog.Warnln("SearchUdmSdmInstance: ue.Supi: ", ue.Supi)
+		// key := int(h.Sum32())
+		// nfInstanceIndex = int(key % len(resp.NfInstances))
+		parts := strings.Split(ue.Supi, "-")
+		imsiNumber, _ := strconv.Atoi(parts[1])
+		nfInstanceIndex = imsiNumber % len(resp.NfInstances)
+	}
+	for _, nfProfile := range resp.NfInstances {
+		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+			continue
+		}
 		ue.NssfId = nfProfile.NfInstanceId
 		nssfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NNSSF_NSSELECTION, models.NfServiceStatus_REGISTERED)
 		if nssfUri != "" {
+			logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(targetNfType), " NF is: ", nfProfile.Ipv4Addresses)
 			break
 		}
 	}
