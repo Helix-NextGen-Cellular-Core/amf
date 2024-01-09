@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/antihax/optional"
@@ -27,6 +28,8 @@ import (
 	"github.com/omec-project/openapi/Nsmf_PDUSession"
 	"github.com/omec-project/openapi/models"
 )
+
+var responseMap sync.Map
 
 func getServingSmfIndex(smfNum int) (servingSmfIndex int) {
 	servingSmfIndexStr := os.Getenv("SERVING_SMF_INDEX")
@@ -100,6 +103,8 @@ func SelectSmf(
 
 	nsiInformation := ue.GetNsiInformationFromSnssai(anType, snssai)
 	if nsiInformation == nil {
+		// value, ok := responseMap.Load(ue.Supi) // Bilal Code
+		// if !ok {
 		if ue.NssfUri == "" {
 			// TODO: Set a timeout of NSSF Selection or will starvation here
 			for {
@@ -123,6 +128,10 @@ func SelectSmf(
 			return nil, nasMessage.Cause5GMMPayloadWasNotForwarded, err
 		}
 		nsiInformation = response.NsiInformation
+		// responseMap.Store(ue.Supi, nsiInformation) // Bilal Code
+		// } else {
+		// nsiInformation = value.(*models.NsiInformation) // Bilal code
+		// }
 	}
 
 	smContext := amf_context.NewSmContext(pduSessionID)
@@ -152,56 +161,62 @@ func SelectSmf(
 	}
 
 	ue.GmmLog.Debugf("Search SMF from NRF[%s]", nrfUri)
-
-	result, err := SendSearchNFInstances(nrfUri, models.NfType_SMF, models.NfType_AMF, &param)
-	if err != nil {
-		return nil, nasMessage.Cause5GMMPayloadWasNotForwarded, err
-	}
-	// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_SMF), " result: ", result.NfInstances)
-	if len(result.NfInstances) == 0 {
-		err = fmt.Errorf("DNN[%s] is not supported or not subscribed in the slice[Snssai: %+v]", dnn, snssai)
-		return nil, nasMessage.Cause5GMMDNNNotSupportedOrNotSubscribedInTheSlice, err
-	}
-
-	// select the first SMF, TODO: select base on other info
-	smContext.SmfProfiles = result.NfInstances
-	//smfNum := len(result.NfInstances)
-	//servingSmfIndex := getServingSmfIndex(smfNum)
-	//nfProfile := result.NfInstances[servingSmfIndex]
-	//smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
-	//smContext.SetSmfID(nfProfile.NfInstanceId)
-	//smContext.SetSmfUri(smfUri)
-
-	nfInstanceIds := make([]string, 0, len(result.NfInstances))
-	for _, nfProfile := range result.NfInstances {
-		nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
-	}
-	sort.Strings(nfInstanceIds)
-	nfInstanceIdIndexMap := make(map[string]int)
-	for index, value := range nfInstanceIds {
-		nfInstanceIdIndexMap[value] = index
-	}
-
-	nfInstanceIndex := 0
-	if amf_context.AMF_Self().EnableScaling == true {
-		// h := fnv.New32a()
-		// h.Write([]byte(ue.Supi))
-		// key := int(h.Sum32())
-		// nfInstanceIndex = int(key % len(result.NfInstances))
-		parts := strings.Split(ue.Supi, "-")
-		imsiNumber, _ := strconv.Atoi(parts[1])
-		nfInstanceIndex = imsiNumber % len(result.NfInstances)
-	}
-
-	for _, nfProfile := range result.NfInstances {
-		if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
-			continue
+	if ue.SmfUri == "" {
+		result, err := SendSearchNFInstances(nrfUri, models.NfType_SMF, models.NfType_AMF, &param)
+		if err != nil {
+			return nil, nasMessage.Cause5GMMPayloadWasNotForwarded, err
 		}
-		smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
-		smContext.SetSmfID(nfProfile.NfInstanceId)
-		smContext.SetSmfUri(smfUri)
-		logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
-		break
+		// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_SMF), " result: ", result.NfInstances)
+		if len(result.NfInstances) == 0 {
+			err = fmt.Errorf("DNN[%s] is not supported or not subscribed in the slice[Snssai: %+v]", dnn, snssai)
+			return nil, nasMessage.Cause5GMMDNNNotSupportedOrNotSubscribedInTheSlice, err
+		}
+
+		// select the first SMF, TODO: select base on other info
+		smContext.SmfProfiles = result.NfInstances
+		//smfNum := len(result.NfInstances)
+		//servingSmfIndex := getServingSmfIndex(smfNum)
+		//nfProfile := result.NfInstances[servingSmfIndex]
+		//smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
+		//smContext.SetSmfID(nfProfile.NfInstanceId)
+		//smContext.SetSmfUri(smfUri)
+
+		nfInstanceIds := make([]string, 0, len(result.NfInstances))
+		for _, nfProfile := range result.NfInstances {
+			nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+		}
+		sort.Strings(nfInstanceIds)
+		nfInstanceIdIndexMap := make(map[string]int)
+		for index, value := range nfInstanceIds {
+			nfInstanceIdIndexMap[value] = index
+		}
+
+		nfInstanceIndex := 0
+		if amf_context.AMF_Self().EnableScaling == true {
+			// h := fnv.New32a()
+			// h.Write([]byte(ue.Supi))
+			// key := int(h.Sum32())
+			// nfInstanceIndex = int(key % len(result.NfInstances))
+			parts := strings.Split(ue.Supi, "-")
+			imsiNumber, _ := strconv.Atoi(parts[1])
+			nfInstanceIndex = imsiNumber % len(result.NfInstances)
+		}
+
+		for _, nfProfile := range result.NfInstances {
+			if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+				continue
+			}
+			smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
+			smContext.SetSmfID(nfProfile.NfInstanceId)
+			smContext.SetSmfUri(smfUri)
+			ue.SmfUri = smfUri
+			ue.SmfNfId = nfProfile.NfInstanceId
+			logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
+			break
+		}
+	} else {
+		smContext.SetSmfID(ue.SmfNfId)
+		smContext.SetSmfUri(ue.SmfUri)
 	}
 
 	return smContext, 0, nil

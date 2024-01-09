@@ -146,6 +146,8 @@ type AmfUe struct {
 	N1N2MessageSubscription sync.Map `json:"n1n2MessageSubscription,omitempty"`
 	/* Pdu Sesseion context */
 	SmContextList sync.Map `json:"-"` // map[int32]*SmContext, pdu session id as key
+	SmfUri        string   `json:"smfUri,omitempty"`
+	SmfNfId       string   `json:"smfNfId,omitempty"`
 	/* Related Context*/
 	//RanUe map[models.AccessType]*RanUe `json:"ranUe,omitempty" yaml:"ranUe" bson:"ranUe,omitempty"`
 	RanUe     map[models.AccessType]*RanUe `json:"ranUe, omitEmpty"`

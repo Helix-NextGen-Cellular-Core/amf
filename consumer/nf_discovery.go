@@ -156,6 +156,7 @@ func SearchNssfNSSelectionInstance(ue *amf_context.AmfUe, nrfUri string, targetN
 	if localErr != nil {
 		return localErr
 	}
+	logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(targetNfType), " result: ", resp.NfInstances)
 	// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(targetNfType), " result: ", resp.NfInstances)
 	// select the first NSSF, TODO: select base on other info
 	var nssfUri string
@@ -194,7 +195,7 @@ func SearchNssfNSSelectionInstance(ue *amf_context.AmfUe, nrfUri string, targetN
 		ue.NssfId = nfProfile.NfInstanceId
 		nssfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NNSSF_NSSELECTION, models.NfServiceStatus_REGISTERED)
 		if nssfUri != "" {
-			logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(targetNfType), " NF is: ", nfProfile.Ipv4Addresses)
+			logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(targetNfType), " nssfUri:", nssfUri, " NF is: ", nfProfile)
 			break
 		}
 	}
