@@ -123,8 +123,8 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 					ran.Log.Infof("RAN close the connection.")
 					ran.Remove()
 				} else {
-					ngap.DispatchLb(ran, req)
-					// ran.Ran2AmfMsgChan <- req
+					// ngap.DispatchLb(ran, req)
+					ran.Ran2AmfMsgChan <- req
 				}
 			}
 		}

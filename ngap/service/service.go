@@ -139,7 +139,7 @@ func listenAndServe(addr *sctp.SCTPAddr, handler NGAPHandler) {
 			logger.NgapLog.Debugf("Set read timeout: %+v", readTimeout)
 		}
 
-		logger.NgapLog.Infof("[AMF] SCTP Accept from: %s", newConn.RemoteAddr().String())
+		logger.NgapLog.Error("[AMF] SCTP Accept from: %s", newConn.RemoteAddr().String())
 		connections.Store(newConn, newConn)
 
 		go handleConnection(newConn, MAX_SCTP_PKT_LEN, handler)

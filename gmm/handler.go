@@ -1233,6 +1233,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	// logger.ConsumerLog.Warnln("UdmSelection took: ", time.Now().UnixNano()-st)
 
 	// st := time.Now().UnixNano()
+	// ue.NudmSDMUri = "http://udm:29503"
 	problemDetails, err := consumer.UeCmRegistration(ue, accessType, true)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("UECM_Registration Failed Problem[%+v]", problemDetails)
