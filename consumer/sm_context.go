@@ -9,11 +9,10 @@ package consumer
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/url"
 	"os"
-	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -181,39 +180,73 @@ func SelectSmf(
 		//smContext.SetSmfID(nfProfile.NfInstanceId)
 		//smContext.SetSmfUri(smfUri)
 
-		nfInstanceIds := make([]string, 0, len(result.NfInstances))
-		for _, nfProfile := range result.NfInstances {
-			nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
-		}
-		sort.Strings(nfInstanceIds)
-		nfInstanceIdIndexMap := make(map[string]int)
-		for index, value := range nfInstanceIds {
-			nfInstanceIdIndexMap[value] = index
-		}
+		// ue.UdmId = nf.NfInstanceId
+		// sdmUri = util.SearchNFServiceUri(nf, models.ServiceName_NUDM_SDM, models.NfServiceStatus_REGISTERED)
+		// uecmUri := util.Sea
+		// nfInstanceIds := make([]string, 0, len(result.NfInstances))
+		// for _, nfProfile := range result.NfInstances {
+		// 	nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+		// }
+		// sort.Strings(nfInstanceIds)
+		// nfInstanceIdIndexMap := make(map[string]int)
+		// for index, value := range nfInstanceIds {
+		// 	nfInstanceIdIndexMap[value] = index
+		// }
 
-		nfInstanceIndex := 0
-		if amf_context.AMF_Self().EnableScaling == true {
-			// h := fnv.New32a()
-			// h.Write([]byte(ue.Supi))
-			// key := int(h.Sum32())
-			// nfInstanceIndex = int(key % len(result.NfInstances))
-			parts := strings.Split(ue.Supi, "-")
-			imsiNumber, _ := strconv.Atoi(parts[1])
-			nfInstanceIndex = imsiNumber % len(result.NfInstances)
+		// nfInstanceIndex := 0
+		// if amf_context.AMF_Self().EnableScaling == true {
+		// 	// h := fnv.New32a()
+		// 	// h.Write([]byte(ue.Supi))
+		// 	// key := int(h.Sum32())
+		// 	// nfInstanceIndex = int(key % len(result.NfInstances))
+		// 	parts := strings.Split(ue.Supi, "-")
+		// 	imsiNumber, _ := strconv.Atoi(parts[1])
+		// 	nfInstanceIndex = imsiNumber % len(result.NfInstances)
+		// }
+		min := math.MaxInt32
+		nf := models.NfProfile{}
+		amf_context.AMF_Self().SmfNfProfileListMutex.Lock()
+		if amf_context.AMF_Self().SmfNfProfileList == nil {
+			amf_context.AMF_Self().SmfNfProfileList = make(map[string]int)
 		}
-
 		for _, nfProfile := range result.NfInstances {
-			if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
-				continue
+			fmt.Println("nfProfile Load: ", nfProfile.Load, nfProfile)
+			// if smf_count, ok := amf_context.AMF_Self().SmfNfProfileList[nfProfile.NfInstanceId]; !ok {
+			// 	nf = nfProfile
+			// 	amf_context.AMF_Self().SmfNfProfileList[nfProfile.NfInstanceId] = 0
+			// 	break
+			// } else {
+			// if smf_count < min {
+			// 	nf = nfProfile
+			// 	min = smf_count
+			// }
+			if int(nfProfile.Load) < min {
+				nf = nfProfile
+				min = int(nfProfile.Load)
 			}
-			smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
-			smContext.SetSmfID(nfProfile.NfInstanceId)
-			smContext.SetSmfUri(smfUri)
-			ue.SmfUri = smfUri
-			ue.SmfNfId = nfProfile.NfInstanceId
-			logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
-			break
+			// }
 		}
+		// amf_context.AMF_Self().SmfNfProfileList[nf.NfInstanceId]++
+		smfUri = util.SearchNFServiceUri(nf, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
+		smContext.SetSmfID(nf.NfInstanceId)
+		smContext.SetSmfUri(smfUri)
+		ue.SmfUri = smfUri
+		ue.SmfNfId = nf.NfInstanceId
+		// logger.ConsumerLog.Error("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nf.Ipv4Addresses, " Count: ", amf_context.AMF_Self().SmfNfProfileList[nf.NfInstanceId])
+		logger.ConsumerLog.Error("for Ue: ", ue.Supi, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nf.Ipv4Addresses, " Count: ", min)
+		amf_context.AMF_Self().SmfNfProfileListMutex.Unlock()
+		// for _, nfProfile := range result.NfInstances {
+		// 	if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
+		// 		continue
+		// 	}
+		// 	smfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
+		// 	smContext.SetSmfID(nfProfile.NfInstanceId)
+		// 	smContext.SetSmfUri(smfUri)
+		// 	ue.SmfUri = smfUri
+		// 	ue.SmfNfId = nfProfile.NfInstanceId
+		// 	logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
+		// 	break
+		// }
 	} else {
 		smContext.SetSmfID(ue.SmfNfId)
 		smContext.SetSmfUri(ue.SmfUri)

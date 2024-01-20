@@ -2350,16 +2350,17 @@ func HandleInitialContextSetupResponse(ran *context.AmfRan, message *ngapType.NG
 		}
 	}
 
-	if ranUe.Ran.AnType == models.AccessType_NON_3_GPP_ACCESS {
-		ngap_message.SendDownlinkNasTransport(ranUe, amfUe.RegistrationAcceptForNon3GPPAccess, nil)
-	}
-
 	if criticalityDiagnostics != nil {
 		printCriticalityDiagnostics(ran, criticalityDiagnostics)
 	}
 	ranUe.RecvdInitialContextSetupResponse = true
 	// amfUe.PublishUeCtxtInfo()
 	context.StoreContextInDB(amfUe)
+
+	if ranUe.Ran.AnType == models.AccessType_NON_3_GPP_ACCESS {
+		ngap_message.SendDownlinkNasTransport(ranUe, amfUe.RegistrationAcceptForNon3GPPAccess, nil)
+	}
+
 }
 
 func HandleInitialContextSetupFailure(ran *context.AmfRan, message *ngapType.NGAPPDU) {

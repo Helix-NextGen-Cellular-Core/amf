@@ -82,7 +82,7 @@ func SendToRanUe(ue *context.RanUe, packet []byte) {
 	if ue.AmfUe == nil {
 		ue.Log.Warn("AmfUe is nil")
 	}
-
+	// ue.AmfUe.UeMutex.Unlock()
 	SendToRan(ran, packet)
 }
 
@@ -91,8 +91,9 @@ func NasSendToRan(ue *context.AmfUe, accessType models.AccessType, packet []byte
 		logger.NgapLog.Error("AmfUe is nil")
 		return
 	}
-
+	ue.RanUeLock.RLock()
 	ranUe := ue.RanUe[accessType]
+	ue.RanUeLock.RUnlock()
 	if ranUe == nil {
 		logger.NgapLog.Error("RanUe is nil")
 		return
@@ -697,17 +698,19 @@ func SendRerouteNasRequest(ue *context.AmfUe, anType models.AccessType, amfUeNga
 		logger.NgapLog.Error("AmfUe is nil")
 		return
 	}
-
+	ue.RanUeLock.RLock()
 	ue.RanUe[anType].Log.Info("Send Reroute Nas Request")
 
 	if len(ngapMessage) == 0 {
 		ue.RanUe[anType].Log.Error("Ngap Message is nil")
+		ue.RanUeLock.RUnlock()
 		return
 	}
 
 	pkt, err := BuildRerouteNasRequest(ue, anType, amfUeNgapID, ngapMessage, allowedNSSAI)
 	if err != nil {
 		ue.RanUe[anType].Log.Errorf("Build RerouteNasRequest failed : %s", err.Error())
+		ue.RanUeLock.RUnlock()
 		return
 	}
 	NasSendToRan(ue, anType, pkt)

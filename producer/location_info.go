@@ -86,8 +86,9 @@ func ProvideLocationInfoProcedure(requestLocInfo models.RequestLocInfo, ueContex
 	}
 
 	provideLocInfo := new(models.ProvideLocInfo)
-
+	ue.RanUeLock.RLock()
 	ranUe := ue.RanUe[anType]
+	ue.RanUeLock.RUnlock()
 	if requestLocInfo.Req5gsLoc || requestLocInfo.ReqCurrentLoc {
 		provideLocInfo.CurrentLoc = true
 		provideLocInfo.Location = &ue.Location

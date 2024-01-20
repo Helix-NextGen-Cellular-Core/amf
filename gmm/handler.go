@@ -109,8 +109,10 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 				fallthrough
 			case nasMessage.ULNASTransportRequestTypeExistingEmergencyPduSession:
 				ue.GmmLog.Warnf("Emergency PDU Session is not supported")
+				ue.RanUeLock.RLock()
 				gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeN1SMInfo,
 					smMessage, pduSessionID, nasMessage.Cause5GMMPayloadWasNotForwarded, nil, 0)
+				ue.RanUeLock.RUnlock()
 				return nil
 			}
 		}
@@ -157,8 +159,10 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 				} else if response == nil {
 					err := fmt.Errorf("PDU Session ID[%d] can't be released in DUPLICATE_SESSION_ID case", pduSessionID)
 					ue.GmmLog.Errorln(err)
+					ue.RanUeLock.RLock()
 					gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeN1SMInfo,
 						smMessage, pduSessionID, nasMessage.Cause5GMMPayloadWasNotForwarded, nil, 0)
+					ue.RanUeLock.RUnlock()
 				} else if response != nil {
 					smContext.SetUserLocation(ue.Location)
 					responseData := response.JsonData
@@ -169,7 +173,9 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 							ue.GmmLog.Debugln("AMF Transfer NGAP PDU Session Resource Release Command from SMF")
 							list := ngapType.PDUSessionResourceToReleaseListRelCmd{}
 							ngap_message.AppendPDUSessionResourceToReleaseListRelCmd(&list, pduSessionID, n2Info)
+							ue.RanUeLock.RLock()
 							ngap_message.SendPDUSessionResourceReleaseCommand(ue.RanUe[anType], nil, list)
+							ue.RanUeLock.RUnlock()
 						}
 					}
 				}
@@ -181,8 +187,10 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 				} else {
 					ue.GmmLog.Errorf("S-NSSAI[%v] is not allowed for access type[%s] (PDU Session ID: %d)",
 						smContext.Snssai(), anType, pduSessionID)
+					ue.RanUeLock.RLock()
 					gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeN1SMInfo,
 						smMessage, pduSessionID, nasMessage.Cause5GMMPayloadWasNotForwarded, nil, 0)
+					ue.RanUeLock.RUnlock()
 				}
 			// other requestType: AMF forward the 5GSM message, and the PDU session ID IE towards the SMF identified
 			// by the SMF ID of the PDU session routing context
@@ -232,8 +240,10 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 				}
 				if newSmContext, cause, err := consumer.SelectSmf(ue, anType, pduSessionID, snssai, dnn); err != nil {
 					ue.GmmLog.Errorf("Select SMF failed: %+v", err)
+					ue.RanUeLock.RLock()
 					gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeN1SMInfo,
 						smMessage, pduSessionID, cause, nil, 0)
+					ue.RanUeLock.RUnlock()
 				} else {
 					_, smContextRef, errResponse, problemDetail, err :=
 						consumer.SendCreateSmContextRequest(ue, newSmContext, nil, smMessage)
@@ -246,8 +256,10 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 					} else if errResponse != nil {
 						ue.GmmLog.Warnf("PDU Session Establishment Request is rejected by SMF[pduSessionId:%d]",
 							pduSessionID)
+						ue.RanUeLock.RLock()
 						gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeN1SMInfo,
 							errResponse.BinaryDataN1SmMessage, pduSessionID, 0, nil, 0)
+						ue.RanUeLock.RUnlock()
 					} else {
 						newSmContext.SetSmContextRef(smContextRef)
 						newSmContext.SetUserLocation(deepcopy.Copy(ue.Location).(models.UserLocation))
@@ -264,8 +276,10 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 					// TS 24.501 5.4.5.2.5 case a) 3)
 					pduSessionIDStr := fmt.Sprintf("%d", pduSessionID)
 					if ueContextInSmf, ok := ue.UeContextInSmfData.PduSessions[pduSessionIDStr]; !ok {
+						ue.RanUeLock.RLock()
 						gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeN1SMInfo,
 							smMessage, pduSessionID, nasMessage.Cause5GMMPayloadWasNotForwarded, nil, 0)
+						ue.RanUeLock.RUnlock()
 					} else {
 						// TS 24.501 5.4.5.2.3 case a) 1) iv)
 						smContext = context.NewSmContext(pduSessionID)
@@ -277,8 +291,10 @@ func transport5GSMMessage(ue *context.AmfUe, anType models.AccessType,
 						return forward5GSMMessageToSMF(ue, anType, pduSessionID, smContext, smMessage)
 					}
 				} else {
+					ue.RanUeLock.RLock()
 					gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeN1SMInfo,
 						smMessage, pduSessionID, nasMessage.Cause5GMMPayloadWasNotForwarded, nil, 0)
+					ue.RanUeLock.RUnlock()
 				}
 			default:
 			}
@@ -327,8 +343,10 @@ func forward5GSMMessageToSMF(
 		ue.GmmLog.Warnf("PDU Session Modification Procedure is rejected by SMF[pduSessionId:%d], Error[%s]",
 			pduSessionID, errJSON.Error.Cause)
 		if n1Msg != nil {
+			ue.RanUeLock.RLock()
 			gmm_message.SendDLNASTransport(ue.RanUe[accessType], nasMessage.PayloadContainerTypeN1SMInfo,
 				errResponse.BinaryDataN1SmMessage, pduSessionID, 0, nil, 0)
+			ue.RanUeLock.RUnlock()
 		}
 		// TODO: handle n2 info transfer
 	} else if response != nil {
@@ -354,17 +372,23 @@ func forward5GSMMessageToSMF(
 			case models.N2SmInfoType_PDU_RES_MOD_REQ:
 				list := ngapType.PDUSessionResourceModifyListModReq{}
 				ngap_message.AppendPDUSessionResourceModifyListModReq(&list, pduSessionID, n1Msg, n2SmInfo)
+				ue.RanUeLock.RLock()
 				ngap_message.SendPDUSessionResourceModifyRequest(ue.RanUe[accessType], list)
+				ue.RanUeLock.RUnlock()
 			case models.N2SmInfoType_PDU_RES_REL_CMD:
 				list := ngapType.PDUSessionResourceToReleaseListRelCmd{}
 				ngap_message.AppendPDUSessionResourceToReleaseListRelCmd(&list, pduSessionID, n2SmInfo)
+				ue.RanUeLock.RLock()
 				ngap_message.SendPDUSessionResourceReleaseCommand(ue.RanUe[accessType], n1Msg, list)
+				ue.RanUeLock.RUnlock()
 			default:
 				return fmt.Errorf("Error N2 SM information type[%s]", responseData.N2SmInfoType)
 			}
 		} else if n1Msg != nil {
 			ue.GmmLog.Debugf("AMF forward Only N1 SM Message to UE")
+			ue.RanUeLock.RLock()
 			ngap_message.SendDownlinkNasTransport(ue.RanUe[accessType], n1Msg, nil)
+			ue.RanUeLock.RUnlock()
 		}
 	}
 	// ue.PublishUeCtxtInfo()
@@ -386,10 +410,12 @@ func HandleRegistrationRequest(ue *context.AmfUe, anType models.AccessType, proc
 	}
 
 	ue.GmmLog.Info("Handle Registration Request")
-
+	ue.RanUeLock.RLock()
 	if ue.RanUe[anType] == nil {
+		ue.RanUeLock.RUnlock()
 		return fmt.Errorf("RanUe is nil")
 	}
+	ue.RanUeLock.RUnlock()
 
 	// MacFailed is set if plain Registration Request message received with GUTI/SUCI or
 	// integrity protected Registration Reguest message received but mac verification Failed
@@ -510,8 +536,10 @@ func HandleRegistrationRequest(ue *context.AmfUe, anType models.AccessType, proc
 	}
 
 	// Copy UserLocation from ranUe
+	ue.RanUeLock.RLock()
 	ue.Location = ue.RanUe[anType].Location
 	ue.Tai = ue.RanUe[anType].Tai
+	ue.RanUeLock.RUnlock()
 
 	// Check TAI
 	taiList := make([]models.Tai, len(amfSelf.SupportTaiLists))
@@ -520,14 +548,18 @@ func HandleRegistrationRequest(ue *context.AmfUe, anType models.AccessType, proc
 		taiList[i].Tac = util.TACConfigToModels(taiList[i].Tac)
 	}
 	if !context.InTaiList(ue.Tai, taiList) {
+		ue.RanUeLock.RLock()
 		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMMTrackingAreaNotAllowed, "")
+		ue.RanUeLock.RUnlock()
 		return fmt.Errorf("Registration Reject[Tracking area not allowed]")
 	}
 
 	if registrationRequest.UESecurityCapability != nil {
 		ue.UESecurityCapability = *registrationRequest.UESecurityCapability
 	} else {
+		ue.RanUeLock.RLock()
 		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMMProtocolErrorUnspecified, "")
+		ue.RanUeLock.RUnlock()
 		return fmt.Errorf("UESecurityCapability is nil")
 	}
 	// TODO (TS 23.502 4.2.2.2 step 4): if UE's 5g-GUTI is included & serving AMF has changed
@@ -601,9 +633,11 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 	}
 
 	if len(ue.AllowedNssai[anType]) == 0 {
+		ue.RanUeLock.RLock()
 		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
 		ngap_message.SendUEContextReleaseCommand(ue.RanUe[anType], context.UeContextN2NormalRelease,
 			ngapType.CausePresentNas, ngapType.CauseNasPresentNormalRelease)
+		ue.RanUeLock.RUnlock()
 		ue.Remove()
 		return fmt.Errorf("Allowed Nssai List is nil")
 	}
@@ -677,7 +711,9 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 				time.Sleep(500 * time.Millisecond) // sleep a while when search NF Instance fail
 				retryCount--
 				if retryCount == 0 {
+					ue.RanUeLock.RLock()
 					gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
+					ue.RanUeLock.RUnlock()
 					return fmt.Errorf("AMF can not select an PCF by NRF")
 				}
 			} else {
@@ -734,11 +770,15 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 	// TODO att time stame
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("AM Policy Control Create Failed Problem[%+v]", problemDetails)
+		ue.RanUeLock.RLock()
 		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
+		ue.RanUeLock.RUnlock()
 		return fmt.Errorf("AMPolicy Control Create failed at PCF")
 	} else if err != nil {
 		ue.GmmLog.Errorf("AM Policy Control Create Error[%+v]", err)
+		ue.RanUeLock.RLock()
 		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
+		ue.RanUeLock.RUnlock()
 		return err
 	}
 
@@ -823,7 +863,9 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 		ue.Capability5GMM = *ue.RegistrationRequest.Capability5GMM
 	} else {
 		if ue.RegistrationType5GS != nasMessage.RegistrationType5GSPeriodicRegistrationUpdating {
+			ue.RanUeLock.RLock()
 			gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMMProtocolErrorUnspecified, "")
+			ue.RanUeLock.RUnlock()
 			return fmt.Errorf("Capability5GMM is nil")
 		}
 	}
@@ -844,7 +886,9 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 	// }
 
 	if len(ue.Pei) == 0 {
+		ue.RanUeLock.RLock()
 		gmm_message.SendIdentityRequest(ue.RanUe[anType], nasMessage.MobileIdentity5GSTypeImei)
+		ue.RanUeLock.RUnlock()
 		return nil
 	}
 
@@ -915,6 +959,7 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 								ue.GmmLog.Errorf("Update SmContext Error[%v]", err.Error())
 							}
 						} else {
+							ue.RanUeLock.RLock()
 							if ue.RanUe[anType].UeContextRequest {
 								ngap_message.AppendPDUSessionResourceSetupListCxtReq(&ctxList, pduSessionId,
 									smContext.Snssai(), response.BinaryDataN1SmMessage, response.BinaryDataN2SmInformation)
@@ -922,6 +967,7 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 								ngap_message.AppendPDUSessionResourceSetupListSUReq(&suList, pduSessionId,
 									smContext.Snssai(), response.BinaryDataN1SmMessage, response.BinaryDataN2SmInformation)
 							}
+							ue.RanUeLock.RUnlock()
 						}
 					}
 				}
@@ -973,11 +1019,14 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 					if err != nil {
 						return err
 					}
+					ue.RanUeLock.RLock()
 					ngap_message.SendPDUSessionResourceSetupRequest(ue.RanUe[anType], nasPdu, suList)
+					ue.RanUeLock.RUnlock()
 				} else {
 					gmm_message.SendRegistrationAccept(ue, anType, pduSessionStatus,
 						reactivationResult, errPduSessionId, errCause, &ctxList)
 				}
+				ue.RanUeLock.RLock()
 				switch requestData.N1MessageContainer.N1MessageClass {
 				case models.N1MessageClass_SM:
 					gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeN1SMInfo,
@@ -989,6 +1038,7 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 				case models.N1MessageClass_UPDP:
 					gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeUEPolicy, n1Msg, 0, 0, nil, 0)
 				}
+				ue.RanUeLock.RUnlock()
 				ue.N1N2Message = nil
 				return nil
 			}
@@ -1080,7 +1130,7 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 
 	// TODO: GUTI reassignment if need (based on operator poilcy)
 	// TODO: T3512/Non3GPP de-registration timer reassignment if need (based on operator policy)
-
+	ue.RanUeLock.RLock()
 	if ue.RanUe[anType].UeContextRequest {
 		if anType == models.AccessType__3_GPP_ACCESS {
 			gmm_message.SendRegistrationAccept(ue, anType, pduSessionStatus, reactivationResult,
@@ -1091,10 +1141,12 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 				pduSessionStatus, reactivationResult, errPduSessionId, errCause)
 			if err != nil {
 				ue.GmmLog.Errorf("Build Registration Accept: %+v", err)
+				ue.RanUeLock.RUnlock()
 				return nil
 			}
 			ue.RegistrationAcceptForNon3GPPAccess = registrationAccept
 		}
+		ue.RanUeLock.RUnlock()
 		return nil
 	} else {
 		nasPdu, err := gmm_message.BuildRegistrationAccept(ue, anType, pduSessionStatus, reactivationResult,
@@ -1109,6 +1161,7 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 		}
 		// TODO: when state machaine, remove it
 		// ue.ClearRegistrationRequestData(anType)
+		ue.RanUeLock.RUnlock()
 		return nil
 	}
 }
@@ -1355,11 +1408,15 @@ func handleRequestedNssai(ue *context.AmfUe, anType models.AccessType) error {
 			problemDetails, err := consumer.NSSelectionGetForRegistration(ue, requestedNssai)
 			if problemDetails != nil {
 				ue.GmmLog.Errorf("NSSelection Get Failed Problem[%+v]", problemDetails)
+				ue.RanUeLock.RLock()
 				gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMMProtocolErrorUnspecified, "")
+				ue.RanUeLock.RUnlock()
 				return fmt.Errorf("Handle Requested Nssai of UE failed")
 			} else if err != nil {
 				ue.GmmLog.Errorf("NSSelection Get Error[%+v]", err)
+				ue.RanUeLock.RLock()
 				gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMMProtocolErrorUnspecified, "")
+				ue.RanUeLock.RUnlock()
 				return fmt.Errorf("Handle Requested Nssai of UE failed")
 			}
 
@@ -1410,6 +1467,7 @@ func handleRequestedNssai(ue *context.AmfUe, anType models.AccessType) error {
 				// Condition (A) Step 7: initial AMF find Target AMF via NRF ->
 				// Send Namf_Communication_N1MessageNotify to Target AMF
 				ueContext := consumer.BuildUeContextModel(ue)
+				ue.RanUeLock.RLock()
 				registerContext := models.RegistrationContextContainer{
 					UeContext:        &ueContext,
 					AnType:           anType,
@@ -1425,6 +1483,7 @@ func handleRequestedNssai(ue *context.AmfUe, anType models.AccessType) error {
 						AccessType:        anType,
 					},
 				}
+				ue.RanUeLock.RUnlock()
 				if len(ue.NetworkSliceInfo.RejectedNssaiInPlmn) > 0 {
 					registerContext.RejectedNssaiInPlmn = ue.NetworkSliceInfo.RejectedNssaiInPlmn
 				}
@@ -1438,7 +1497,9 @@ func handleRequestedNssai(ue *context.AmfUe, anType models.AccessType) error {
 			} else {
 				// Condition (B) Step 7: initial AMF can not find Target AMF via NRF -> Send Reroute NAS Request to RAN
 				allowedNssaiNgap := ngapConvert.AllowedNssaiToNgap(ue.AllowedNssai[anType])
+				ue.RanUeLock.RLock()
 				ngap_message.SendRerouteNasRequest(ue, anType, nil, ue.RanUe[anType].InitialUEMessage, &allowedNssaiNgap)
+				ue.RanUeLock.RUnlock()
 			}
 			return nil
 		}
@@ -1627,7 +1688,9 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 		}
 	} else {
 		// Request UE's SUCI by sending identity request
+		ue.RanUeLock.RLock()
 		gmm_message.SendIdentityRequest(ue.RanUe[accessType], nasMessage.MobileIdentity5GSTypeSuci)
+		ue.RanUeLock.RUnlock()
 		return false, nil
 	}
 
@@ -1717,7 +1780,9 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 	ue.ABBA = []uint8{0x00, 0x00} // set ABBA value as described at TS 33.501 Annex A.7.1
 
 	// st = time.Now().UnixNano()
+	ue.RanUeLock.RLock()
 	gmm_message.SendAuthenticationRequest(ue.RanUe[accessType])
+	ue.RanUeLock.RUnlock()
 	// logger.ConsumerLog.Warnln("SendAuthenticationRequest took: ", time.Now().UnixNano()-st)
 
 	return false, nil
@@ -1728,7 +1793,9 @@ func NetworkInitiatedDeregistrationProcedure(ue *context.AmfUe, accessType model
 	anType := util.AnTypeToNas(accessType)
 	if ue.CmConnect(accessType) && ue.State[accessType].Is(context.Registered) {
 		//setting reregistration required flag to true
+		ue.RanUeLock.RLock()
 		gmm_message.SendDeregistrationRequest(ue.RanUe[accessType], anType, true, 0)
+		ue.RanUeLock.RUnlock()
 	} else {
 		SetDeregisteredState(ue, anType)
 	}
@@ -1879,9 +1946,11 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 	// Rejecting ServiceRequest if it is received in Deregistered State
 	if !ue.SecurityContextIsValid() || ue.State[anType].Current() == context.Deregistered {
 		ue.GmmLog.Warnf("No Security Context : SUPI[%s]", ue.Supi)
+		ue.RanUeLock.RLock()
 		gmm_message.SendServiceReject(ue.RanUe[anType], nil, nasMessage.Cause5GMMUEIdentityCannotBeDerivedByTheNetwork)
 		ngap_message.SendUEContextReleaseCommand(ue.RanUe[anType],
 			context.UeContextN2NormalRelease, ngapType.CausePresentNas, ngapType.CauseNasPresentNormalRelease)
+		ue.RanUeLock.RUnlock()
 		return nil
 	}
 
@@ -1933,18 +2002,24 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 	if ue.MacFailed {
 		ue.SecurityContextAvailable = false
 		ue.GmmLog.Warnf("Security Context Exist, But Integrity Check Failed with existing Context: SUPI[%s]", ue.Supi)
+		ue.RanUeLock.RLock()
 		gmm_message.SendServiceReject(ue.RanUe[anType], nil, nasMessage.Cause5GMMUEIdentityCannotBeDerivedByTheNetwork)
 		ngap_message.SendUEContextReleaseCommand(ue.RanUe[anType],
 			context.UeContextN2NormalRelease, ngapType.CausePresentNas, ngapType.CauseNasPresentNormalRelease)
+		ue.RanUeLock.RUnlock()
 		return nil
 	}
 
 	//TODO: workaround to send service accept in ICSR
+	ue.RanUeLock.RLock()
 	ue.RanUe[anType].UeContextRequest = true
 	if serviceType == nasMessage.ServiceTypeSignalling {
+		ue.RanUeLock.RUnlock()
 		err := sendServiceAccept(ue, anType, ctxList, suList, nil, nil, nil, nil)
 		return err
 	}
+	ue.RanUeLock.RUnlock()
+
 	if ue.N1N2Message != nil {
 		requestData := ue.N1N2Message.Request.JsonData
 		if ue.N1N2Message.Request.BinaryDataN2Information != nil {
@@ -1968,6 +2043,7 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 				if uplinkDataPsi[pduSessionID] && smContext.AccessType() == models.AccessType__3_GPP_ACCESS {
 					response, errRes, _, err := consumer.SendUpdateSmContextActivateUpCnxState(
 						ue, smContext, models.AccessType__3_GPP_ACCESS)
+					ue.RanUeLock.RLock()
 					if err != nil {
 						ue.GmmLog.Errorf("SendUpdateSmContextActivateUpCnxState[pduSessionID:%d] Error: %+v",
 							pduSessionID, err)
@@ -1993,6 +2069,7 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 						ngap_message.AppendPDUSessionResourceSetupListSUReq(&suList,
 							pduSessionID, smContext.Snssai(), nil, response.BinaryDataN2SmInformation)
 					}
+					ue.RanUeLock.RUnlock()
 				}
 			}
 			return true
@@ -2037,6 +2114,7 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 				if err != nil {
 					return err
 				}
+				ue.RanUeLock.RLock()
 				switch requestData.N1MessageContainer.N1MessageClass {
 				case models.N1MessageClass_SM:
 					gmm_message.SendDLNASTransport(ue.RanUe[anType],
@@ -2048,6 +2126,7 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 				case models.N1MessageClass_UPDP:
 					gmm_message.SendDLNASTransport(ue.RanUe[anType], nasMessage.PayloadContainerTypeUEPolicy, n1Msg, 0, 0, nil, 0)
 				}
+				ue.RanUeLock.RUnlock()
 				ue.N1N2Message = nil
 				return nil
 			}
@@ -2090,6 +2169,7 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 							smContext.SetAccessType(models.AccessType__3_GPP_ACCESS)
 							if response.BinaryDataN2SmInformation != nil &&
 								response.JsonData.N2SmInfoType == models.N2SmInfoType_PDU_RES_SETUP_REQ {
+								ue.RanUeLock.RLock()
 								if ue.RanUe[anType].UeContextRequest {
 									ngap_message.AppendPDUSessionResourceSetupListCxtReq(&ctxList,
 										requestData.PduSessionId, smContext.Snssai(), nil, response.BinaryDataN2SmInformation)
@@ -2097,6 +2177,7 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 									ngap_message.AppendPDUSessionResourceSetupListSUReq(&suList,
 										requestData.PduSessionId, smContext.Snssai(), nil, response.BinaryDataN2SmInformation)
 								}
+								ue.RanUeLock.RUnlock()
 							}
 						}
 					} else {
@@ -2156,7 +2237,9 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 				}
 
 				if !accept {
+					ue.RanUeLock.RLock()
 					gmm_message.SendServiceReject(ue.RanUe[anType], nil, nasMessage.Cause5GMMRestrictedServiceArea)
+					ue.RanUeLock.RUnlock()
 					return nil
 				}
 			}
@@ -2185,6 +2268,8 @@ func HandleServiceRequest(ue *context.AmfUe, anType models.AccessType,
 func sendServiceAccept(ue *context.AmfUe, anType models.AccessType, ctxList ngapType.PDUSessionResourceSetupListCxtReq,
 	suList ngapType.PDUSessionResourceSetupListSUReq, pDUSessionStatus *[16]bool,
 	reactivationResult *[16]bool, errPduSessionId, errCause []uint8) error {
+	ue.RanUeLock.RLock()
+	defer ue.RanUeLock.RUnlock()
 	if ue.RanUe[anType].UeContextRequest {
 		// update Kgnb/Kn3iwf
 		ue.UpdateSecurityContext(anType)
@@ -2248,10 +2333,14 @@ func HandleAuthenticationResponse(ue *context.AmfUe, accessType models.AccessTyp
 			ue.GmmLog.Errorf("HRES* Validation Failure (received: %s, expected: %s)", hResStar, av5gAka.HxresStar)
 
 			if ue.IdentityTypeUsedForRegistration == nasMessage.MobileIdentity5GSType5gGuti {
+				ue.RanUeLock.RLock()
 				gmm_message.SendIdentityRequest(ue.RanUe[accessType], nasMessage.MobileIdentity5GSTypeSuci)
+				ue.RanUeLock.RUnlock()
 				return nil
 			} else {
+				ue.RanUeLock.RLock()
 				gmm_message.SendAuthenticationReject(ue.RanUe[accessType], "")
+				ue.RanUeLock.RUnlock()
 				return GmmFSM.SendEvent(ue.State[accessType], AuthFailEvent, fsm.ArgsType{
 					ArgAmfUe:      ue,
 					ArgAccessType: accessType,
@@ -2281,10 +2370,14 @@ func HandleAuthenticationResponse(ue *context.AmfUe, accessType models.AccessTyp
 			})
 		case models.AuthResult_FAILURE:
 			if ue.IdentityTypeUsedForRegistration == nasMessage.MobileIdentity5GSType5gGuti {
+				ue.RanUeLock.RLock()
 				gmm_message.SendIdentityRequest(ue.RanUe[accessType], nasMessage.MobileIdentity5GSTypeSuci)
+				ue.RanUeLock.RUnlock()
 				return nil
 			} else {
+				ue.RanUeLock.RLock()
 				gmm_message.SendAuthenticationReject(ue.RanUe[accessType], "")
+				ue.RanUeLock.RUnlock()
 				return GmmFSM.SendEvent(ue.State[accessType], AuthFailEvent, fsm.ArgsType{
 					ArgAmfUe:      ue,
 					ArgAccessType: accessType,
@@ -2316,11 +2409,15 @@ func HandleAuthenticationResponse(ue *context.AmfUe, accessType models.AccessTyp
 			})
 		case models.AuthResult_FAILURE:
 			if ue.IdentityTypeUsedForRegistration == nasMessage.MobileIdentity5GSType5gGuti {
+				ue.RanUeLock.RLock()
 				gmm_message.SendAuthenticationResult(ue.RanUe[accessType], false, response.EapPayload)
 				gmm_message.SendIdentityRequest(ue.RanUe[accessType], nasMessage.MobileIdentity5GSTypeSuci)
+				ue.RanUeLock.RUnlock()
 				return nil
 			} else {
+				ue.RanUeLock.RLock()
 				gmm_message.SendAuthenticationReject(ue.RanUe[accessType], response.EapPayload)
+				ue.RanUeLock.RUnlock()
 				return GmmFSM.SendEvent(ue.State[accessType], AuthFailEvent, fsm.ArgsType{
 					ArgAmfUe:      ue,
 					ArgAccessType: accessType,
@@ -2331,7 +2428,9 @@ func HandleAuthenticationResponse(ue *context.AmfUe, accessType models.AccessTyp
 			if _, exists := response.Links["link"]; exists {
 				ue.AuthenticationCtx.Links = response.Links
 			}
+			ue.RanUeLock.RLock()
 			gmm_message.SendAuthenticationRequest(ue.RanUe[accessType])
+			ue.RanUeLock.RUnlock()
 		}
 	}
 
@@ -2353,11 +2452,15 @@ func HandleAuthenticationFailure(ue *context.AmfUe, anType models.AccessType,
 		switch cause5GMM {
 		case nasMessage.Cause5GMMMACFailure:
 			ue.GmmLog.Warnln("Authentication Failure Cause: Mac Failure")
+			ue.RanUeLock.RLock()
 			gmm_message.SendAuthenticationReject(ue.RanUe[anType], "")
+			ue.RanUeLock.RUnlock()
 			return GmmFSM.SendEvent(ue.State[anType], AuthFailEvent, fsm.ArgsType{ArgAmfUe: ue, ArgAccessType: anType})
 		case nasMessage.Cause5GMMNon5GAuthenticationUnacceptable:
 			ue.GmmLog.Warnln("Authentication Failure Cause: Non-5G Authentication Unacceptable")
+			ue.RanUeLock.RLock()
 			gmm_message.SendAuthenticationReject(ue.RanUe[anType], "")
+			ue.RanUeLock.RUnlock()
 			return GmmFSM.SendEvent(ue.State[anType], AuthFailEvent, fsm.ArgsType{ArgAmfUe: ue, ArgAccessType: anType})
 		case nasMessage.Cause5GMMngKSIAlreadyInUse:
 			ue.GmmLog.Warnln("Authentication Failure Cause: NgKSI Already In Use")
@@ -2369,14 +2472,18 @@ func HandleAuthenticationFailure(ue *context.AmfUe, anType models.AccessType,
 			} else {
 				ue.NgKsi.Ksi = 0
 			}
+			ue.RanUeLock.RLock()
 			gmm_message.SendAuthenticationRequest(ue.RanUe[anType])
+			ue.RanUeLock.RUnlock()
 		case nasMessage.Cause5GMMSynchFailure: // TS 24.501 5.4.1.3.7 case f
 			ue.GmmLog.Warn("Authentication Failure 5GMM Cause: Synch Failure")
 
 			ue.AuthFailureCauseSynchFailureTimes++
 			if ue.AuthFailureCauseSynchFailureTimes >= 2 {
 				ue.GmmLog.Warnf("2 consecutive Synch Failure, terminate authentication procedure")
+				ue.RanUeLock.RLock()
 				gmm_message.SendAuthenticationReject(ue.RanUe[anType], "")
+				ue.RanUeLock.RUnlock()
 				return GmmFSM.SendEvent(ue.State[anType], AuthFailEvent, fsm.ArgsType{ArgAmfUe: ue, ArgAccessType: anType})
 			}
 
@@ -2394,8 +2501,9 @@ func HandleAuthenticationFailure(ue *context.AmfUe, anType models.AccessType,
 			}
 			ue.AuthenticationCtx = response
 			ue.ABBA = []uint8{0x00, 0x00}
-
+			ue.RanUeLock.RLock()
 			gmm_message.SendAuthenticationRequest(ue.RanUe[anType])
+			ue.RanUeLock.RUnlock()
 		}
 	} else if ue.AuthenticationCtx.AuthType == models.AuthType_EAP_AKA_PRIME {
 		switch cause5GMM {
@@ -2406,7 +2514,9 @@ func HandleAuthenticationFailure(ue *context.AmfUe, anType models.AccessType,
 			} else {
 				ue.NgKsi.Ksi = 0
 			}
+			ue.RanUeLock.RLock()
 			gmm_message.SendAuthenticationRequest(ue.RanUe[anType])
+			ue.RanUeLock.RUnlock()
 		}
 	}
 
@@ -2434,8 +2544,10 @@ func HandleRegistrationComplete(ue *context.AmfUe, accessType models.AccessType,
 
 	if ue.RegistrationRequest.UplinkDataStatus == nil &&
 		ue.RegistrationRequest.GetFOR() == nasMessage.FollowOnRequestNoPending {
+		ue.RanUeLock.RLock()
 		ngap_message.SendUEContextReleaseCommand(ue.RanUe[accessType], context.UeContextN2NormalRelease,
 			ngapType.CausePresentNas, ngapType.CauseNasPresentNormalRelease)
+		ue.RanUeLock.RUnlock()
 	}
 
 	return GmmFSM.SendEvent(ue.State[accessType], ContextSetupSuccessEvent, fsm.ArgsType{
@@ -2511,9 +2623,10 @@ func HandleSecurityModeReject(ue *context.AmfUe, anType models.AccessType,
 	ue.GmmLog.Error("UE reject the security mode command, abort the ongoing procedure")
 
 	ue.SecurityContextAvailable = false
-
+	ue.RanUeLock.RLock()
 	ngap_message.SendUEContextReleaseCommand(ue.RanUe[anType], context.UeContextReleaseUeContext,
 		ngapType.CausePresentNas, ngapType.CauseNasPresentNormalRelease)
+	ue.RanUeLock.RUnlock()
 
 	return nil
 }
@@ -2559,9 +2672,11 @@ func HandleDeregistrationRequest(ue *context.AmfUe, anType models.AccessType,
 	}
 
 	// if Deregistration type is not switch-off, send Deregistration Accept
+	ue.RanUeLock.RLock()
 	if deregistrationRequest.GetSwitchOff() == 0 && ue.RanUe[anType] != nil {
 		gmm_message.SendDeregistrationAccept(ue.RanUe[anType])
 	}
+	ue.RanUeLock.RUnlock()
 
 	// TS 23.502 4.2.6, 4.12.3
 	switch targetDeregistrationAccessType {
@@ -2589,7 +2704,6 @@ func HandleDeregistrationRequest(ue *context.AmfUe, anType models.AccessType,
 	case nasMessage.AccessTypeBoth:
 		ue.RanUeLock.RLock()
 		ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
-		ue.RanUeLock.RUnlock()
 		if ranUe != nil {
 			ngap_message.SendUEContextReleaseCommand(ranUe,
 				context.UeContextReleaseUeContext, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
@@ -2598,6 +2712,7 @@ func HandleDeregistrationRequest(ue *context.AmfUe, anType models.AccessType,
 			ngap_message.SendUEContextReleaseCommand(ue.RanUe[models.AccessType_NON_3_GPP_ACCESS],
 				context.UeContextReleaseUeContext, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
 		}
+		ue.RanUeLock.RUnlock()
 
 		err := GmmFSM.SendEvent(ue.State[models.AccessType__3_GPP_ACCESS], DeregistrationAcceptEvent, fsm.ArgsType{
 			ArgAmfUe:      ue,
@@ -2625,12 +2740,10 @@ func HandleDeregistrationAccept(ue *context.AmfUe, anType models.AccessType,
 		ue.T3522 = nil // clear the timer
 	}
 
+	ue.RanUeLock.RLock()
 	switch ue.DeregistrationTargetAccessType {
 	case nasMessage.AccessType3GPP:
-		ue.RanUeLock.RLock()
 		ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
-		ue.RanUeLock.RUnlock()
-
 		if ranUe != nil {
 			ngap_message.SendUEContextReleaseCommand(ranUe,
 				context.UeContextReleaseDueToNwInitiatedDeregistraion, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
@@ -2641,9 +2754,7 @@ func HandleDeregistrationAccept(ue *context.AmfUe, anType models.AccessType,
 				context.UeContextReleaseDueToNwInitiatedDeregistraion, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
 		}
 	case nasMessage.AccessTypeBoth:
-		ue.RanUeLock.RLock()
 		ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
-		ue.RanUeLock.RUnlock()
 		if ranUe != nil {
 			ngap_message.SendUEContextReleaseCommand(ranUe,
 				context.UeContextReleaseDueToNwInitiatedDeregistraion, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
@@ -2653,6 +2764,7 @@ func HandleDeregistrationAccept(ue *context.AmfUe, anType models.AccessType,
 				context.UeContextReleaseDueToNwInitiatedDeregistraion, ngapType.CausePresentNas, ngapType.CauseNasPresentDeregister)
 		}
 	}
+	ue.RanUeLock.RUnlock()
 
 	ue.DeregistrationTargetAccessType = 0
 
@@ -2676,7 +2788,9 @@ func HandleStatus5GMM(ue *context.AmfUe, anType models.AccessType, status5GMM *n
 func HandleAuthenticationError(ue *context.AmfUe, anType models.AccessType) error {
 	ue.GmmLog.Error("Handle Authentication Error")
 	if ue.RegistrationRequest != nil {
+		ue.RanUeLock.RLock()
 		gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMMUEIdentityCannotBeDerivedByTheNetwork, "")
+		ue.RanUeLock.RUnlock()
 	}
 	return nil
 }

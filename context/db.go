@@ -236,7 +236,7 @@ func DbFetchRanUeByRanUeNgapID(ranUeNgapID int64, ran *AmfRan) *RanUe {
 
 	ue := DbFetch(AmfUeDataColl, filter)
 	if ue == nil {
-		logger.ContextLog.Warnln("DbFetchRanUeByRanUeNgapID: no document found for ranUeNgapID ", ranUeNgapID)
+		// logger.ContextLog.Warnln("DbFetchRanUeByRanUeNgapID: no document found for ranUeNgapID ", ranUeNgapID)
 		return nil
 	}
 
@@ -252,10 +252,10 @@ func DbFetchRanUeByRanUeNgapID(ranUeNgapID int64, ran *AmfRan) *RanUe {
 	}
 	ue.RanUeLock.RLock()
 	// defer ue.RanUeLock.RUnlock()
-	uEranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS] // TODO - Bilal Change since start
+	ranUe = ue.RanUe[models.AccessType__3_GPP_ACCESS] // TODO - Bilal Change since start
 	// ran.RanUeList = append(ran.RanUeList, uEranUe)
 	ue.RanUeLock.RUnlock()
-	return uEranUe
+	return ranUe
 }
 
 func DbFetchRanUeByAmfUeNgapID(amfUeNgapID int64) *RanUe {
@@ -278,8 +278,9 @@ func DbFetchRanUeByAmfUeNgapID(amfUeNgapID int64) *RanUe {
 		return ranUe
 	}
 	ue.RanUeLock.RLock()
-	defer ue.RanUeLock.RUnlock()
-	return ue.RanUe[models.AccessType__3_GPP_ACCESS]
+	ranUe = ue.RanUe[models.AccessType__3_GPP_ACCESS]
+	ue.RanUeLock.RUnlock()
+	return ranUe
 }
 
 func DbFetchUeByGuti(guti string) (ue *AmfUe, ok bool) {

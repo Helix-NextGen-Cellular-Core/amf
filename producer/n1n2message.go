@@ -248,7 +248,9 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 			}
 			if n2Info == nil {
 				ue.ProducerLog.Debug("Forward N1 Message to UE")
+				ue.RanUeLock.RLock()
 				ngap_message.SendDownlinkNasTransport(ue.RanUe[anType], nasPdu, nil)
+				ue.RanUeLock.RUnlock()
 				n1n2MessageTransferRspData = new(models.N1N2MessageTransferRspData)
 				n1n2MessageTransferRspData.Cause = models.N1N2MessageTransferCause_N1_N2_TRANSFER_INITIATED
 				return n1n2MessageTransferRspData, "", nil, nil
@@ -261,6 +263,7 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 			switch smInfo.N2InfoContent.NgapIeType {
 			case models.NgapIeType_PDU_RES_SETUP_REQ:
 				ue.ProducerLog.Debugln("AMF Transfer NGAP PDU Session Resource Setup Request from SMF")
+				ue.RanUeLock.RLock()
 				if ue.RanUe[anType].SentInitialContextSetupRequest {
 					list := ngapType.PDUSessionResourceSetupListSUReq{}
 					ngap_message.AppendPDUSessionResourceSetupListSUReq(&list, smInfo.PduSessionId, *smInfo.SNssai, nasPdu, n2Info)
@@ -271,6 +274,7 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 					ngap_message.SendInitialContextSetupRequest(ue, anType, nil, &list, nil, nil, nil)
 					ue.RanUe[anType].SentInitialContextSetupRequest = true
 				}
+				ue.RanUeLock.RUnlock()
 				n1n2MessageTransferRspData = new(models.N1N2MessageTransferRspData)
 				n1n2MessageTransferRspData.Cause = models.N1N2MessageTransferCause_N1_N2_TRANSFER_INITIATED
 				//context.StoreContextInDB(ue)
@@ -281,7 +285,9 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 				ue.ProducerLog.Debugln("AMF Transfer NGAP PDU Session Resource Modify Request from SMF")
 				list := ngapType.PDUSessionResourceModifyListModReq{}
 				ngap_message.AppendPDUSessionResourceModifyListModReq(&list, smInfo.PduSessionId, nasPdu, n2Info)
+				ue.RanUeLock.RLock()
 				ngap_message.SendPDUSessionResourceModifyRequest(ue.RanUe[anType], list)
+				ue.RanUeLock.RUnlock()
 				n1n2MessageTransferRspData = new(models.N1N2MessageTransferRspData)
 				n1n2MessageTransferRspData.Cause = models.N1N2MessageTransferCause_N1_N2_TRANSFER_INITIATED
 				//context.StoreContextInDB(ue)
@@ -290,7 +296,9 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 				ue.ProducerLog.Debugln("AMF Transfer NGAP PDU Session Resource Release Command from SMF")
 				list := ngapType.PDUSessionResourceToReleaseListRelCmd{}
 				ngap_message.AppendPDUSessionResourceToReleaseListRelCmd(&list, smInfo.PduSessionId, n2Info)
+				ue.RanUeLock.RLock()
 				ngap_message.SendPDUSessionResourceReleaseCommand(ue.RanUe[anType], nasPdu, list)
+				ue.RanUeLock.RUnlock()
 				n1n2MessageTransferRspData = new(models.N1N2MessageTransferRspData)
 				n1n2MessageTransferRspData.Cause = models.N1N2MessageTransferCause_N1_N2_TRANSFER_INITIATED
 				//context.StoreContextInDB(ue)

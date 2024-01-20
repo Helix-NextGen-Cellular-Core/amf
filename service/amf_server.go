@@ -65,7 +65,7 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 						ran.RanId = ran.ConvertGnbIdToRanId(ran.GnbId)
 						log.Printf("RanID: %v for GnbId: %v", ran.RanID(), req.GnbId)
 						rsp.GnbId = req.GnbId
-
+						StartRan2AmfMsgChan(ran, req.GnbId)
 						//send nf(gnb) status notification
 						gnbStatus := mi.MetricEvent{EventType: mi.CNfStatusEvt,
 							NfStatusData: mi.CNfStatus{NfType: mi.NfTypeGnb,
