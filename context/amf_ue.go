@@ -224,6 +224,10 @@ type AmfUe struct {
 }
 
 func (ue *AmfUe) MarshalJSON() ([]byte, error) {
+	// start_time := time.Now()
+
+	ue.UeMutex.Lock()
+	defer ue.UeMutex.Unlock()
 	type Alias AmfUe
 	stateVal := make(map[models.AccessType]string)
 	smCtxListVal := make(map[string]SmContext)
@@ -294,7 +298,12 @@ func (ue *AmfUe) MarshalJSON() ([]byte, error) {
 		N1N2Message: n1n2MsgVal,
 		RanId:       gnbId,
 	}
-
+	// defer func() {
+	// 	process_time := time.Now().Sub(start_time)
+	// 	if process_time.Microseconds() > 300 {
+	// 		fmt.Println("Time to marshal AmfUe: %v micro %v ms", process_time.Microseconds(), process_time.Milliseconds())
+	// 	}
+	// }()
 	return json.Marshal(&struct {
 		CustomAmfUe CustomFieldsAmfUe `json:"customFieldsAmfUe"`
 		*Alias
@@ -302,6 +311,8 @@ func (ue *AmfUe) MarshalJSON() ([]byte, error) {
 		CustomAmfUe: customAmfUe,
 		Alias:       (*Alias)(ue),
 	})
+
+	// return jObj, ue1
 }
 
 func (ue *AmfUe) UnmarshalJSON(data []byte) error {

@@ -163,8 +163,6 @@ func Dispatch(conn net.Conn, msg []byte) {
 }
 
 func NgapMsgHandler(ue *context.AmfUe, msg context.NgapMsg) {
-	ue.UeMutex.Lock()
-	defer ue.UeMutex.Unlock()
 	DispatchNgapMsg(msg.Ran, msg.NgapMsg, msg.SctplbMsg)
 }
 

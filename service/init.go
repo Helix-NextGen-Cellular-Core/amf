@@ -21,9 +21,9 @@ import (
 	"syscall"
 	"time"
 
-	nrf_cache "github.com/omec-project/nrf/nrfcache"
-
 	"github.com/gin-contrib/cors"
+	"github.com/go-redis/redis"
+	nrf_cache "github.com/omec-project/nrf/nrfcache"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 
@@ -354,6 +354,12 @@ func (amf *AMF) Start() {
 	}
 
 	go context.SetupAmfCollection()
+
+	self.RedisClient = redis.NewClient(&redis.Options{
+		Addr:     "redis:6379",
+		Password: "",
+		DB:       1,
+	})
 
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)

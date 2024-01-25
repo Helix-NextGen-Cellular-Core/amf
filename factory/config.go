@@ -85,6 +85,7 @@ type Configuration struct {
 	DebugProfilePort         int                     `yaml:"debugProfilePort,omitempty"`
 	EnableScaling            bool                    `yaml:"enableScaling,omitempty"`
 	DisableDRSM              bool                    `yaml:"disableDRSM,omitempty"`
+	MinLbSMF                 bool                    `yaml:"minLbSMF,omitempty"`
 }
 
 func (c *Configuration) Get5gsNwFeatSuppEnable() bool {
