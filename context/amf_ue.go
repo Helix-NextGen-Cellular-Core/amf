@@ -226,8 +226,8 @@ type AmfUe struct {
 func (ue *AmfUe) MarshalJSON() ([]byte, error) {
 	// start_time := time.Now()
 
-	ue.UeMutex.Lock()
-	defer ue.UeMutex.Unlock()
+	// ue.UeMutex.Lock()
+	// defer ue.UeMutex.Unlock()
 	type Alias AmfUe
 	stateVal := make(map[models.AccessType]string)
 	smCtxListVal := make(map[string]SmContext)

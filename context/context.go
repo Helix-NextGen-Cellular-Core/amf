@@ -99,6 +99,7 @@ type AMFContext struct {
 	// NfProfileList            map[models.NfType]map[string]int
 	SmfNfProfileListMutex sync.RWMutex
 	RedisClient           *redis.Client
+	RedisDb               int
 }
 
 type AMFContextEventSubscription struct {
@@ -287,7 +288,7 @@ func (context *AMFContext) AmfUeFindBySupi(supi string) (ue *AmfUe, ok bool) {
 		// fmt.Println("Ue found locally : ", supi)
 	} else if context.EnableDbStore {
 		ue, ok = DbFetchUeBySupi(supi)
-		fmt.Println("fetch from db, supi")
+		// fmt.Println("fetch from db, supi")
 		if ue != nil && ok {
 			logger.ContextLog.Infoln("Ue with supi found in DB : ", supi)
 			context.UePool.Store(ue.Supi, ue)
@@ -478,7 +479,7 @@ func (context *AMFContext) AmfUeFindByGuti(guti string) (ue *AmfUe, ok bool) {
 		logger.ContextLog.Infoln("Guti found locally : ", guti)
 	} else if context.EnableDbStore {
 		ue, ok = DbFetchUeByGuti(guti)
-		fmt.Println("fetch from db, guti")
+		// fmt.Println("fetch from db, guti")
 		if ue != nil && ok {
 			logger.ContextLog.Infoln("Ue with Guti found in DB : ", guti)
 			context.UePool.Store(ue.Supi, ue)
@@ -518,7 +519,7 @@ func (context *AMFContext) RanUeFindByAmfUeNgapID(amfUeNgapID int64) *RanUe {
 	} else {
 		if context.EnableDbStore {
 			ranUe = DbFetchRanUeByAmfUeNgapID(amfUeNgapID)
-			fmt.Println("fetch from db, amfRanID")
+			// fmt.Println("fetch from db, amfRanID")
 			if ranUe != nil {
 				context.RanUePool.Store(ranUe.AmfUeNgapId, ranUe)
 				return ranUe

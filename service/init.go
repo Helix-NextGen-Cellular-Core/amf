@@ -358,7 +358,7 @@ func (amf *AMF) Start() {
 	self.RedisClient = redis.NewClient(&redis.Options{
 		Addr:     "redis:6379",
 		Password: "",
-		DB:       1,
+		DB:       factory.AmfConfig.Configuration.RedisDb,
 	})
 
 	signalChannel := make(chan os.Signal, 1)

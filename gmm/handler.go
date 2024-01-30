@@ -701,70 +701,89 @@ func HandleInitialRegistration(ue *context.AmfUe, anType models.AccessType) erro
 	}
 
 	// startTime := time.Now().UnixNano()
-	if ue.PcfUri == "" {
-		retryCount := 5
-		for {
-			resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_PCF, models.NfType_AMF, &param)
-			// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_PCF), " result: ", resp.NfInstances)
-			if err != nil || len(resp.NfInstances) == 0 {
-				ue.GmmLog.Error("AMF can not select an PCF by NRF")
-				time.Sleep(500 * time.Millisecond) // sleep a while when search NF Instance fail
-				retryCount--
-				if retryCount == 0 {
-					ue.RanUeLock.RLock()
-					gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
-					ue.RanUeLock.RUnlock()
-					return fmt.Errorf("AMF can not select an PCF by NRF")
-				}
-			} else {
-				// select the first PCF, TODO: select base on other info
-				nfInstanceIds := make([]string, 0, len(resp.NfInstances))
-				for _, nfProfile := range resp.NfInstances {
-					nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
-				}
-				sort.Strings(nfInstanceIds)
-				nfInstanceIdIndexMap := make(map[string]int)
-				for index, value := range nfInstanceIds {
-					nfInstanceIdIndexMap[value] = index
-				}
-
-				nfInstanceIndex := 0
-				if amfSelf.EnableScaling == true {
-					// h := fnv.New32a()
-					// h.Write([]byte(ue.Supi))
-					// // logger.ConsumerLog.Warnln("PCF: ue.Supi: ", ue.Supi)
-					// key := int(h.Sum32())
-					// nfInstanceIndex = int(key % len(resp.NfInstances))
-					parts := strings.Split(ue.Supi, "-")
-					imsiNumber, _ := strconv.Atoi(parts[1])
-					nfInstanceIndex = imsiNumber % len(resp.NfInstances)
-				}
-				var pcfUri string
-				for _, nfProfile := range resp.NfInstances {
-					if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] {
-						continue
+	var problemDetails *models.ProblemDetails
+	var err error
+	retryCount := 35
+	for retryCount > 0 {
+		if ue.PcfUri == "" {
+			retryCount := 5
+			for {
+				resp, err := consumer.SendSearchNFInstances(amfSelf.NrfUri, models.NfType_PCF, models.NfType_AMF, &param)
+				// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_PCF), " result: ", resp.NfInstances)
+				if err != nil || len(resp.NfInstances) == 0 {
+					ue.GmmLog.Error("AMF can not select an PCF by NRF 1")
+					time.Sleep(500 * time.Millisecond) // sleep a while when search NF Instance fail
+					retryCount--
+					if retryCount == 0 {
+						ue.RanUeLock.RLock()
+						gmm_message.SendRegistrationReject(ue.RanUe[anType], nasMessage.Cause5GMM5GSServicesNotAllowed, "")
+						ue.RanUeLock.RUnlock()
+						return fmt.Errorf("AMF can not select an PCF by NRF 2")
 					}
-					pcfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NPCF_AM_POLICY_CONTROL,
-						models.NfServiceStatus_REGISTERED)
-					if pcfUri != "" {
-						ue.PcfId = nfProfile.NfInstanceId
-						logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_PCF), " NF is: ", nfProfile.Ipv4Addresses)
+				} else {
+					// select the first PCF, TODO: select base on other info
+					// fmt.Println("resp.NfInstances: ", resp.NfInstances)
+					nfInstanceIds := make([]string, 0, len(resp.NfInstances))
+					for _, nfProfile := range resp.NfInstances {
+						nfInstanceIds = append(nfInstanceIds, nfProfile.NfInstanceId)
+					}
+					sort.Strings(nfInstanceIds)
+					nfInstanceIdIndexMap := make(map[string]int)
+					for index, value := range nfInstanceIds {
+						nfInstanceIdIndexMap[value] = index
+					}
+
+					nfInstanceIndex := 0
+					if amfSelf.EnableScaling == true {
+						// h := fnv.New32a()
+						// h.Write([]byte(ue.Supi))
+						// // logger.ConsumerLog.Warnln("PCF: ue.Supi: ", ue.Supi)
+						// key := int(h.Sum32())
+						// nfInstanceIndex = int(key % len(resp.NfInstances))
+						parts := strings.Split(ue.Supi, "-")
+						imsiNumber, _ := strconv.Atoi(parts[1])
+						nfInstanceIndex = imsiNumber % len(resp.NfInstances)
+					}
+					var pcfUri string
+					for _, nfProfile := range resp.NfInstances {
+						// fmt.Println("nfProfile.NfInstanceId: ", nfProfile.NfInstanceId)
+						if nfInstanceIndex != nfInstanceIdIndexMap[nfProfile.NfInstanceId] && amfSelf.EnableScaling == true {
+							continue
+						}
+						if ue.PcfId != "" && ue.PcfId == nfProfile.NfInstanceId {
+							// fmt.Println("nfProfile.NfInstanceId: Old ", nfProfile.NfInstanceId)
+							continue
+						}
+						pcfUri = util.SearchNFServiceUri(nfProfile, models.ServiceName_NPCF_AM_POLICY_CONTROL,
+							models.NfServiceStatus_REGISTERED)
+						if pcfUri != "" {
+							ue.PcfId = nfProfile.NfInstanceId
+							logger.ConsumerLog.Warnln("for Ue: ", ue.Supi, " nfInstanceIndex: ", nfInstanceIndex, " for targetNfType ", string(models.NfType_PCF), " NF is: ", nfProfile.Ipv4Addresses)
+							break
+						}
+					}
+					if ue.PcfUri = pcfUri; ue.PcfUri == "" {
+						ue.GmmLog.Error("AMF can not select an PCF by NRF 3")
+						time.Sleep(500 * time.Millisecond)
+					} else {
 						break
 					}
 				}
-				if ue.PcfUri = pcfUri; ue.PcfUri == "" {
-					ue.GmmLog.Error("AMF can not select an PCF by NRF")
-				} else {
-					break
-				}
 			}
 		}
-	}
 
-	// logger.ConsumerLog.Warnln("PcfSelection took: ", time.Now().UnixNano()-startTime)
-	// TODO att time stame
-	// startTime = time.Now().UnixNano()
-	problemDetails, err := consumer.AMPolicyControlCreate(ue, anType)
+		// logger.ConsumerLog.Warnln("PcfSelection took: ", time.Now().UnixNano()-startTime)
+		// TODO att time stame
+		// startTime = time.Now().UnixNano()
+		problemDetails, err = consumer.AMPolicyControlCreate(ue, anType)
+		if err == nil && problemDetails == nil {
+			break
+		}
+		retryCount--
+		ue.PcfUri = ""
+		time.Sleep(5000 * time.Millisecond)
+	}
+	// problemDetails, err := consumer.AMPolicyControlCreate(ue, anType)
 	// logger.ConsumerLog.Warnln("AMPolicyControlCreate took: %d\n", time.Now().UnixNano()-startTime)
 
 	// TODO att time stame
@@ -897,7 +916,17 @@ func HandleMobilityAndPeriodicRegistrationUpdating(ue *context.AmfUe, anType mod
 
 	if ue.ServingAmfChanged || ue.State[models.AccessType_NON_3_GPP_ACCESS].Is(context.Registered) ||
 		!ue.SubscriptionDataValid {
-		if err := communicateWithUDM(ue, anType); err != nil {
+		retryCount := 35
+		var err error
+		for retryCount > 0 {
+			err = communicateWithUDM(ue, anType)
+			if err == nil {
+				break
+			}
+			retryCount--
+			time.Sleep(5000 * time.Millisecond)
+		}
+		if err != nil {
 			return err
 		}
 	}
@@ -1290,8 +1319,10 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	problemDetails, err := consumer.UeCmRegistration(ue, accessType, true)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("UECM_Registration Failed Problem[%+v]", problemDetails)
+		return fmt.Errorf("UECM_Registration Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		ue.GmmLog.Errorf("UECM_Registration Error[%+v]", err)
+		return fmt.Errorf("UECM_Registration Error[%+v]", err)
 	}
 	// logger.ConsumerLog.Warnln("UeCmRegistration took: ", time.Now().UnixNano()-st)
 
@@ -1299,6 +1330,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	problemDetails, err = consumer.SDMGetAmData(ue)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("SDM_Get AmData Failed Problem[%+v]", problemDetails)
+		return fmt.Errorf("SDM_Get AmData Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		return fmt.Errorf("SDM_Get AmData Error[%+v]", err)
 	}
@@ -1308,6 +1340,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	problemDetails, err = consumer.SDMGetSmfSelectData(ue)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("SDM_Get SmfSelectData Failed Problem[%+v]", problemDetails)
+		return fmt.Errorf("SDM_Get SmfSelectData Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		return fmt.Errorf("SDM_Get SmfSelectData Error[%+v]", err)
 	}
@@ -1317,6 +1350,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	problemDetails, err = consumer.SDMGetUeContextInSmfData(ue)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("SDM_Get UeContextInSmfData Failed Problem[%+v]", problemDetails)
+		return fmt.Errorf("SDM_Get UeContextInSmfData Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		return fmt.Errorf("SDM_Get UeContextInSmfData Error[%+v]", err)
 	}
@@ -1326,6 +1360,7 @@ func communicateWithUDM(ue *context.AmfUe, accessType models.AccessType) error {
 	problemDetails, err = consumer.SDMSubscribe(ue)
 	if problemDetails != nil {
 		ue.GmmLog.Errorf("SDM Subscribe Failed Problem[%+v]", problemDetails)
+		return fmt.Errorf("SDM Subscribe Failed Problem[%+v]", problemDetails)
 	} else if err != nil {
 		ue.GmmLog.Errorf("SDM Subscribe Error[%+v]", err)
 		return fmt.Errorf("SDM Subscribe Error[%+v]", err)
@@ -1354,11 +1389,17 @@ func getSubscribedNssai(ue *context.AmfUe) {
 			}
 		}
 	}
-	problemDetails, err := consumer.SDMGetSliceSelectionSubscriptionData(ue)
-	if problemDetails != nil {
-		ue.GmmLog.Errorf("SDM_Get Slice Selection Subscription Data Failed Problem[%+v]", problemDetails)
-	} else if err != nil {
-		ue.GmmLog.Errorf("SDM_Get Slice Selection Subscription Data Error[%+v]", err)
+	retryCount := 30
+	for retryCount > 0 {
+		problemDetails, err := consumer.SDMGetSliceSelectionSubscriptionData(ue)
+		if problemDetails != nil {
+			ue.GmmLog.Errorf("SDM_Get Slice Selection Subscription Data Failed Problem[%+v]", problemDetails)
+		} else if err != nil {
+			ue.GmmLog.Errorf("SDM_Get Slice Selection Subscription Data Error[%+v]", err)
+		} else {
+			break
+		}
+		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -1774,6 +1815,7 @@ func AuthenticationProcedure(ue *context.AmfUe, accessType models.AccessType) (b
 		ue.GmmLog.Errorf("Nausf_UEAU Authenticate Request Failed: %+v", problemDetails)
 		return false, errors.New("Error Response from AUSF")
 	}
+	// fmt.Println("response from AUSF: ", response)
 	ue.AuthenticationCtx = response
 	// }
 

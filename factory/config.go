@@ -86,6 +86,8 @@ type Configuration struct {
 	EnableScaling            bool                    `yaml:"enableScaling,omitempty"`
 	DisableDRSM              bool                    `yaml:"disableDRSM,omitempty"`
 	MinLbSMF                 bool                    `yaml:"minLbSMF,omitempty"`
+	DrsmPunchLiveTime        int                     `yaml:"drsmPunchLiveTime,omitempty"`
+	RedisDb                  int                     `yaml:"redisDb,omitempty"`
 }
 
 func (c *Configuration) Get5gsNwFeatSuppEnable() bool {

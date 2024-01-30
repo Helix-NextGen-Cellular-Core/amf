@@ -80,11 +80,15 @@ func SendUEAuthenticationAuthenticateRequest(ue *amf_context.AmfUe,
 func SendAuth5gAkaConfirmRequest(ue *amf_context.AmfUe, resStar string) (
 	*models.ConfirmationDataResponse, *models.ProblemDetails, error) {
 	var ausfUri string
+	// fmt.Println("ue.AuthenticationCtx.Links[link].Href: ", ue.AuthenticationCtx.Links["link"].Href)
 	if confirmUri, err := url.Parse(ue.AuthenticationCtx.Links["link"].Href); err != nil {
 		return nil, nil, err
 	} else {
 		ausfUri = fmt.Sprintf("%s://%s", confirmUri.Scheme, confirmUri.Host)
+		// fmt.Println("confirmUri: ", confirmUri)
 	}
+
+	// fmt.Println("ausfUri: ", ausfUri)
 
 	configuration := Nausf_UEAuthentication.NewConfiguration()
 	configuration.SetBasePath(ausfUri)

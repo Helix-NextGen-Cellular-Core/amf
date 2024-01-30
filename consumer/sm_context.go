@@ -43,6 +43,7 @@ func getServingSmfIndex(smfNum int) (servingSmfIndex int) {
 
 func setAltSmfProfile(smCtxt *amf_context.SmContext) error {
 	ignoreSmfId := smCtxt.SmfID()
+	// fmt.Println("setAltSmfProfile: ignoreSmfId", ignoreSmfId)
 	var altSmfInst []models.NfProfile
 	//iterate over nf instances to ignore failed NF
 	for _, inst := range smCtxt.SmfProfiles {
@@ -52,14 +53,91 @@ func setAltSmfProfile(smCtxt *amf_context.SmContext) error {
 	}
 
 	if len(altSmfInst) > 0 {
+		// fmt.Println("setAltSmfProfile: len(altSmfInst)", len(altSmfInst))
 		smCtxt.SmfProfiles = altSmfInst
 		nfProfile := altSmfInst[0]
+		// fmt.Println("setAltSmfProfile: nfProfile", nfProfile)
 		smfUri := util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
 		smCtxt.SetSmfID(nfProfile.NfInstanceId)
 		smCtxt.SetSmfUri(smfUri)
 		return nil
+	} else {
+		nrfUri := amf_context.AMF_Self().NrfUri
+		// fmt.Println("Get NEW SMFS")
+		param := Nnrf_NFDiscovery.SearchNFInstancesParamOpts{
+			ServiceNames: optional.NewInterface([]models.ServiceName{models.ServiceName_NSMF_PDUSESSION}),
+			Dnn:          optional.NewString(smCtxt.Dnn()),
+			Snssais:      optional.NewInterface(util.MarshToJsonString([]models.Snssai{smCtxt.Snssai()})),
+		}
+
+		result, err := SendSearchNFInstances(nrfUri, models.NfType_SMF, models.NfType_AMF, &param)
+		if err != nil {
+			// fmt.Println("setAltSmfProfile: Error while getting New SMF Profiles")
+			return fmt.Errorf("setAltSmfProfile: Error while getting New SMF Profiles")
+		}
+		// fmt.Println("setAltSmfProfile: result", result)
+		// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_SMF), " result: ", result.NfInstances)
+		var altSmfInst []models.NfProfile
+		//iterate over nf instances to ignore failed NF
+		for _, inst := range result.NfInstances {
+			if inst.NfInstanceId != ignoreSmfId {
+				altSmfInst = append(altSmfInst, inst)
+			}
+		}
+
+		// logger.ConsumerLog.Warnln("SendSearchNFInstances: targetNfType", string(models.NfType_SMF), " result: ", result.NfInstances)
+		// fmt.Println("setAltSmfProfile: len(altSmfInst)2: ", len(altSmfInst))
+		if len(altSmfInst) == 0 {
+			fmt.Println("setAltSmfProfile: No New SMF avaiable, try with old one!")
+			return nil
+			// err = fmt.Errorf("setAltSmfProfile: DNN[%s] is not supported or not subscribed in the slice[Snssai: %+v]", smCtxt.Dnn(), smCtxt.Snssai())
+			// return err
+		}
+
+		// select the first SMF, TODO: select base on other info
+		smCtxt.SmfProfiles = result.NfInstances
+		// fmt.Println("setAltSmfProfile: MinLbSMF", amf_context.AMF_Self().MinLbSMF)
+		if amf_context.AMF_Self().MinLbSMF == true {
+			// fmt.Println("setAltSmfProfile: Selecting from minLbSMF")
+			min := math.MaxInt32
+			nf := models.NfProfile{}
+			for _, nfProfile := range altSmfInst {
+				if nfProfile.NfInstanceId != ignoreSmfId {
+					// fmt.Println("setAltSmfProfile: nfProfile Load: ", nfProfile.Load, nfProfile)
+					if int(nfProfile.Load) < min {
+						nf = nfProfile
+						min = int(nfProfile.Load)
+					}
+				}
+			}
+			smfUri := util.SearchNFServiceUri(nf, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
+			smCtxt.SetSmfID(nf.NfInstanceId)
+			smCtxt.SetSmfUri(smfUri)
+			//TODO: update ue smf uri
+			// ue.SmfUri = smfUri
+			// ue.SmfNfId = nf.NfInstanceId
+			logger.ConsumerLog.Error("setAltSmfProfile: for targetNfType ", string(models.NfType_SMF), " NF is: ", nf.Ipv4Addresses, " Count: ", min)
+			return nil
+		} else {
+
+			for _, nfProfile := range altSmfInst {
+				if nfProfile.NfInstanceId != ignoreSmfId {
+					continue
+				}
+				smfUri := util.SearchNFServiceUri(nfProfile, models.ServiceName_NSMF_PDUSESSION, models.NfServiceStatus_REGISTERED)
+				smCtxt.SetSmfID(nfProfile.NfInstanceId)
+				smCtxt.SetSmfUri(smfUri)
+				//TODO: update ue smf uri
+				// ue.SmfUri = smfUri
+				// ue.SmfNfId = nfProfile.NfInstanceId
+				logger.ConsumerLog.Warnln("setAltSmfProfile: for targetNfType ", string(models.NfType_SMF), " NF is: ", nfProfile.Ipv4Addresses)
+				return nil
+
+			}
+		}
+
 	}
-	return fmt.Errorf("no alternate profiles available")
+	return fmt.Errorf("setAltSmfProfile: no alternate profiles available")
 }
 
 func refreshSmfProfiles(ue *amf_context.AmfUe, smCtxt *amf_context.SmContext, ignoreSmfId string) *[]models.NfProfile {
@@ -175,9 +253,9 @@ func SelectSmf(
 
 		// select the first SMF, TODO: select base on other info
 		smContext.SmfProfiles = result.NfInstances
-		fmt.Println("MinLbSMF", amf_context.AMF_Self().MinLbSMF)
+		// fmt.Println("MinLbSMF", amf_context.AMF_Self().MinLbSMF)
 		if amf_context.AMF_Self().MinLbSMF == true {
-			fmt.Println("Selecting from minLbSMF")
+			// fmt.Println("Selecting from minLbSMF")
 			min := math.MaxInt32
 			nf := models.NfProfile{}
 			amf_context.AMF_Self().SmfNfProfileListMutex.Lock()
@@ -185,7 +263,7 @@ func SelectSmf(
 				amf_context.AMF_Self().SmfNfProfileList = make(map[string]int)
 			}
 			for _, nfProfile := range result.NfInstances {
-				fmt.Println("nfProfile Load: ", nfProfile.Load, nfProfile)
+				// fmt.Println("nfProfile Load: ", nfProfile.Load, nfProfile)
 				if int(nfProfile.Load) < min {
 					nf = nfProfile
 					min = int(nfProfile.Load)
@@ -541,7 +619,7 @@ func SendUpdateSmContextRequest(smContext *amf_context.SmContext,
 	client := Nsmf_PDUSession.NewAPIClient(configuration)
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
-	defer cancel()
+	// defer cancel()
 
 	var updateSmContextRequest models.UpdateSmContextRequest
 	updateSmContextRequest.JsonData = &updateData
@@ -553,20 +631,54 @@ func SendUpdateSmContextRequest(smContext *amf_context.SmContext,
 			updateSmContextRequest)
 
 	//retry on alternate SMF
-	if err != nil {
-		if errProfile := setAltSmfProfile(smContext); errProfile == nil {
-			configuration := Nsmf_PDUSession.NewConfiguration()
-			configuration.SetBasePath(smContext.SmfUri())
-			client := Nsmf_PDUSession.NewAPIClient(configuration)
+	retry := 10
+	// for retry > 0 {
+	// 	if err != nil || httpResponse == nil {
+	// 		fmt.Println("Get Alternate SMF 1 retry: ", retry)
+	// 		retry--
+	// 		time.Sleep(5 * time.Second)
+	// 		fmt.Println("Get Alternate SMF 1 after Sleep retry: ", retry)
+	// 		// if errProfile := setAltSmfProfile(smContext); errProfile == nil {
+	// 		configuration := Nsmf_PDUSession.NewConfiguration()
+	// 		configuration.SetBasePath(smContext.SmfUri())
+	// 		client := Nsmf_PDUSession.NewAPIClient(configuration)
+	// 		ctx, cancel = context.WithTimeout(context.TODO(), 30*time.Second)
+	// 		defer cancel()
+	// 		fmt.Println("Get Alternate SMF 1 sending request again: ")
+	// 		updateSmContextReponse, httpResponse, err =
+	// 			client.IndividualSMContextApi.UpdateSmContext(ctx, smContext.SmContextRef(),
+	// 				updateSmContextRequest)
+	// 		fmt.Println("Get Alternate SMF 1 after Request: ")
+	// 		// }
+	// 	} else {
+	// 		break
+	// 	}
+	// }
 
-			ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
-			defer cancel()
+	retry = 30
+	for retry > 0 {
+		if err != nil || httpResponse == nil || httpResponse.StatusCode != 200 {
+			// fmt.Println("Get Alternate SMF 2 retry: ", retry)
+			retry--
+			time.Sleep(5 * time.Second)
+			if errProfile := setAltSmfProfile(smContext); errProfile == nil {
+				configuration := Nsmf_PDUSession.NewConfiguration()
+				// fmt.Println("smContext.SmfUri():", smContext.SmfUri())
+				configuration.SetBasePath(smContext.SmfUri())
+				client := Nsmf_PDUSession.NewAPIClient(configuration)
+				cancel()
+				ctx, cancel = context.WithTimeout(context.TODO(), 30*time.Second)
 
-			updateSmContextReponse, httpResponse, err =
-				client.IndividualSMContextApi.UpdateSmContext(ctx, smContext.SmContextRef(),
-					updateSmContextRequest)
+				updateSmContextReponse, httpResponse, err =
+					client.IndividualSMContextApi.UpdateSmContext(ctx, smContext.SmContextRef(),
+						updateSmContextRequest)
+				// fmt.Println("Get Alternate SMF 2 after Request: httpResponse", httpResponse, " err: ", err, " updateSmContextReponse: ", updateSmContextReponse)
+			}
+		} else {
+			break
 		}
 	}
+	cancel()
 
 	if err == nil {
 		response = &updateSmContextReponse

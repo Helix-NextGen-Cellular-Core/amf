@@ -36,7 +36,7 @@ func InitDrsm() (drsm.DrsmInterface, error) {
 	db := drsm.DbInfo{Url: dbUrl, Name: factory.AmfConfig.Configuration.AmfDBName}
 
 	// amfid is being used for amfngapid, subscriberid and tmsi for this release
-	return drsm.InitDRSM("amfid", podId, db, opt)
+	return drsm.InitDRSM("amfid", podId, db, opt, factory.AmfConfig.Configuration.DrsmPunchLiveTime)
 }
 
 func InitAmfContext(context *context.AMFContext) {

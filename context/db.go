@@ -24,15 +24,19 @@ import (
 var dbMutex sync.Mutex
 
 type UeStateForDB struct {
-	AmfUeBsonA bson.M
-	Supi       string
+	AmfUeBsonA  []byte
+	Supi        string
+	AmfUeNgapID int64
+	RanUeNgapID int64
+	GnbId       string
+	Guti        string
 }
 
-// var StoreAmContextDbChannel chan UeStateForDB
-// var DeleteAmContextDbChannel chan UeStateForDB
+var StoreAmContextDbChannel chan UeStateForDB
+var DeleteAmContextDbChannel chan UeStateForDB
 
-var StoreAmContextDbChannel chan *AmfUe
-var DeleteAmContextDbChannel chan *AmfUe
+// var StoreAmContextDbChannel chan *AmfUe
+// var DeleteAmContextDbChannel chan *AmfUe
 
 type CustomFieldsAmfUe struct {
 	State       map[models.AccessType]string `json:"state"`
@@ -126,11 +130,12 @@ func SetupAmfCollection() {
 	if err != nil {
 		logger.ContextLog.Errorf("Create index failed on RanUeNgapID field.")
 	}*/
-	// StoreAmContextDbChannel = make(chan UeStateForDB, 8192)
-	// DeleteAmContextDbChannel = make(chan UeStateForDB, 8192)
 
-	StoreAmContextDbChannel = make(chan *AmfUe, 8192)
-	DeleteAmContextDbChannel = make(chan *AmfUe, 8192)
+	StoreAmContextDbChannel = make(chan UeStateForDB, 8192)
+	DeleteAmContextDbChannel = make(chan UeStateForDB, 8192)
+
+	// StoreAmContextDbChannel = make(chan *AmfUe, 8192)
+	// DeleteAmContextDbChannel = make(chan *AmfUe, 8192)
 
 	for i := 1; i < 256; i++ {
 		go ProcessStoreContextInDB()
@@ -165,49 +170,50 @@ func ProcessStoreContextInDB() {
 		// fmt.Println("Db ue Supi: ", rcvdAmfUE.Supi, "ue.Tmsi", rcvdAmfUE.Tmsi, "ue.Guti", rcvdAmfUE.Guti)
 		// st := time.Now()
 		// MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
-		amfJsom, err := json.Marshal(rcvdAmfUE)
-		var ranUeNgapIDVal, amfUeNgapIDVal int64
-		var gnbId string
-		rcvdAmfUE.RanUeLock.RLock()
-		if rcvdAmfUE.RanUe != nil {
-			ranUe := rcvdAmfUE.RanUe[models.AccessType__3_GPP_ACCESS]
-			if ranUe != nil {
-				gnbId = ranUe.Ran.GnbId
-				// if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
-				ranUeNgapIDVal = ranUe.RanUeNgapId
-				amfUeNgapIDVal = ranUe.AmfUeNgapId
-				// }
-			}
-		}
-		rcvdAmfUE.RanUeLock.RUnlock()
 
-		if err != nil {
-			logger.ContextLog.Errorf("amfue marshall error: %v", err)
-		}
-		err = AMF_Self().RedisClient.Set(rcvdAmfUE.Supi, amfJsom, 0).Err()
+		// amfJsom, err := json.Marshal(rcvdAmfUE)
+		// if err != nil {
+		// 	logger.ContextLog.Errorf("amfue marshall error: %v", err)
+		// }
+		// var ranUeNgapIDVal, amfUeNgapIDVal int64
+		// var gnbId string
+		// rcvdAmfUE.RanUeLock.RLock()
+		// if rcvdAmfUE.RanUe != nil {
+		// 	ranUe := rcvdAmfUE.RanUe[models.AccessType__3_GPP_ACCESS]
+		// 	if ranUe != nil {
+		// 		gnbId = ranUe.Ran.GnbId
+		// 		// if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
+		// 		ranUeNgapIDVal = ranUe.RanUeNgapId
+		// 		amfUeNgapIDVal = ranUe.AmfUeNgapId
+		// 		// }
+		// 	}
+		// }
+		// rcvdAmfUE.RanUeLock.RUnlock()
+		amfJsom := rcvdAmfUE.AmfUeBsonA
+		err := AMF_Self().RedisClient.Set(rcvdAmfUE.Supi, amfJsom, 0).Err()
 		if err != nil {
 			logger.ContextLog.Warnln("Error in storing in redis: ", err, "supi: ", rcvdAmfUE.Supi)
 		}
-		if amfUeNgapIDVal != 0 {
-			amfUeNgapIDstr := strconv.Itoa(int(amfUeNgapIDVal))
+		if rcvdAmfUE.AmfUeNgapID != 0 {
+			amfUeNgapIDstr := strconv.FormatInt(rcvdAmfUE.AmfUeNgapID, 10)
 			err = AMF_Self().RedisClient.Set(amfUeNgapIDstr, amfJsom, 0).Err()
 			if err != nil {
 				logger.ContextLog.Warnln("Error in storing in redis: ", err, "amfUeNgapIDstr: ", amfUeNgapIDstr)
 			}
 		}
 
-		if ranUeNgapIDVal != 0 {
-			ranUeNgapIDValstr := strconv.Itoa(int(ranUeNgapIDVal))
+		if rcvdAmfUE.RanUeNgapID != 0 {
+			ranUeNgapIDValstr := strconv.FormatInt(rcvdAmfUE.RanUeNgapID, 10)
 			err = AMF_Self().RedisClient.Set(ranUeNgapIDValstr, amfJsom, 0).Err()
 			if err != nil {
 				logger.ContextLog.Warnln("Error in storing in redis: ", err, "ranUeNgapIDValstr: ", ranUeNgapIDValstr)
 			}
 		}
 
-		if gnbId != "" {
-			err = AMF_Self().RedisClient.Set(gnbId, amfJsom, 0).Err()
+		if rcvdAmfUE.GnbId != "" {
+			err = AMF_Self().RedisClient.Set(rcvdAmfUE.GnbId, amfJsom, 0).Err()
 			if err != nil {
-				logger.ContextLog.Warnln("Error in storing in redis: ", err, "gnbId: ", gnbId)
+				logger.ContextLog.Warnln("Error in storing in redis: ", err, "gnbId: ", rcvdAmfUE.GnbId)
 			}
 		}
 
@@ -216,7 +222,7 @@ func ProcessStoreContextInDB() {
 			logger.ContextLog.Warnln("Error in storing in redis: ", err, "guti: ", rcvdAmfUE.Guti)
 		}
 
-		logger.ContextLog.Warnln("Stored: Db ue Supi: ", rcvdAmfUE.Supi, "ue.Tmsi", rcvdAmfUE.Tmsi, "ue.Guti", rcvdAmfUE.Guti, "ranUeNgapIDVal: ", ranUeNgapIDVal, "amfUeNgapIDVal: ", amfUeNgapIDVal, "gnbId: ", gnbId)
+		logger.ContextLog.Warnln("Stored: Db ue Supi: ", rcvdAmfUE.Supi, "ue.Guti", rcvdAmfUE.Guti, "ranUeNgapIDVal: ", rcvdAmfUE.RanUeNgapID, "amfUeNgapIDVal: ", rcvdAmfUE.AmfUeNgapID, "gnbId: ", rcvdAmfUE.GnbId)
 		// tmpUe := DbFetch(rcvdAmfUE.Supi)
 		// if tmpUe != nil {
 		// 	fmt.Println("Got Ue: Db ue Supi: ", tmpUe.Supi, "ue.Tmsi", tmpUe.Tmsi, "ue.Guti", tmpUe.Guti, "tmpUe", tmpUe)
@@ -237,10 +243,29 @@ func ProcessStoreContextInDB() {
 func StoreContextInDB(ue *AmfUe) {
 	self := AMF_Self()
 	if self.EnableDbStore {
-		StoreAmContextDbChannel <- ue
+		// StoreAmContextDbChannel <- ue
 		// amfUeBsonA := ToBsonM(ue)
-		// ueState := UeStateForDB{amfUeBsonA, ue.Supi}
-		// StoreAmContextDbChannel <- ueState
+		amfJson, err := json.Marshal(ue)
+		if err != nil {
+			logger.ContextLog.Errorf("amfue marshall error: %v", err)
+		} else {
+			var ranUeNgapIDVal, amfUeNgapIDVal int64
+			var gnbId string
+			ue.RanUeLock.RLock()
+			if ue.RanUe != nil {
+				ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
+				if ranUe != nil {
+					gnbId = ranUe.Ran.GnbId
+					// if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
+					ranUeNgapIDVal = ranUe.RanUeNgapId
+					amfUeNgapIDVal = ranUe.AmfUeNgapId
+					// }
+				}
+			}
+			ue.RanUeLock.RUnlock()
+			ueState := UeStateForDB{amfJson, ue.Supi, amfUeNgapIDVal, ranUeNgapIDVal, gnbId, ue.Guti}
+			StoreAmContextDbChannel <- ueState
+		}
 		// amfUeBsonA := ToBsonM(ue)
 		// filter := bson.M{"supi": ue.Supi}
 		// MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
@@ -265,11 +290,12 @@ func ProcessDeleteContextFromDB() {
 func DeleteContextFromDB(ue *AmfUe) {
 	self := AMF_Self()
 	if self.EnableDbStore {
-		DeleteAmContextDbChannel <- ue
+		// DeleteAmContextDbChannel <- ue
 		// filter := bson.M{"supi": ue.Supi}
 		// MongoDBLibrary.RestfulAPIDeleteOne(AmfUeDataColl, filter)
 		// ueState := UeStateForDB{nil, ue.Supi}
-		// DeleteAmContextDbChannel <- ueState
+		ueState := UeStateForDB{nil, ue.Supi, 0, 0, "", ue.Guti}
+		DeleteAmContextDbChannel <- ueState
 	}
 }
 
