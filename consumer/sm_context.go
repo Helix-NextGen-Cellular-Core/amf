@@ -659,21 +659,21 @@ func SendUpdateSmContextRequest(smContext *amf_context.SmContext,
 	for retry > 0 {
 		if err != nil || httpResponse == nil || httpResponse.StatusCode != 200 {
 			// fmt.Println("Get Alternate SMF 2 retry: ", retry)
+			cancel()
 			retry--
-			time.Sleep(5 * time.Second)
 			if errProfile := setAltSmfProfile(smContext); errProfile == nil {
 				configuration := Nsmf_PDUSession.NewConfiguration()
-				// fmt.Println("smContext.SmfUri():", smContext.SmfUri())
+				fmt.Println("smContext.SmfUri():", smContext.SmfUri(), "retry: ", retry)
 				configuration.SetBasePath(smContext.SmfUri())
 				client := Nsmf_PDUSession.NewAPIClient(configuration)
-				cancel()
 				ctx, cancel = context.WithTimeout(context.TODO(), 30*time.Second)
 
 				updateSmContextReponse, httpResponse, err =
 					client.IndividualSMContextApi.UpdateSmContext(ctx, smContext.SmContextRef(),
 						updateSmContextRequest)
-				// fmt.Println("Get Alternate SMF 2 after Request: httpResponse", httpResponse, " err: ", err, " updateSmContextReponse: ", updateSmContextReponse)
+				fmt.Println("Get Alternate SMF 2 after Request: httpResponse", httpResponse, " err: ", err, " updateSmContextReponse: ", updateSmContextReponse)
 			}
+			time.Sleep(3 * time.Second)
 		} else {
 			break
 		}
