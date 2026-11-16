@@ -36,8 +36,8 @@ require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/viper v1.7.1
-	github.com/stretchr/testify v1.8.1
-	github.com/urfave/cli v1.22.10
+	github.com/stretchr/testify v1.10.0
+	github.com/urfave/cli v1.22.17
 	go.mongodb.org/mongo-driver v1.11.0
 	google.golang.org/grpc v1.48.0
 	google.golang.org/protobuf v1.28.1
@@ -58,7 +58,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
