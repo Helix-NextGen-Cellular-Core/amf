@@ -179,7 +179,6 @@ func (context *AMFContext) AllocateRegistrationArea(ue *AmfUe, anType models.Acc
 	for i := range taiList {
 		tmp, _ := strconv.ParseUint(taiList[i].Tac, 10, 32)
 		taiList[i].Tac = fmt.Sprintf("%06x", tmp)
-		// logger.ContextLog.Infof("Supported Tai List in AMF Plmn: %v, Tac: %v", taiList[i].PlmnId, taiList[i].Tac)
 	}
 	for _, supportTai := range taiList {
 		if reflect.DeepEqual(supportTai, ue.Tai) {
@@ -281,14 +280,11 @@ func (context *AMFContext) AmfUeFindByUeContextID(ueContextID string) (*AmfUe, b
 }
 
 func (context *AMFContext) AmfUeFindBySupi(supi string) (ue *AmfUe, ok bool) {
-	// fmt.Println("find Ue from supi")
 	if value, loadOk := context.UePool.Load(supi); loadOk {
 		ue = value.(*AmfUe)
 		ok = loadOk
-		// fmt.Println("Ue found locally : ", supi)
 	} else if context.EnableDbStore {
 		ue, ok = DbFetchUeBySupi(supi)
-		// fmt.Println("fetch from db, supi")
 		if ue != nil && ok {
 			logger.ContextLog.Infoln("Ue with supi found in DB : ", supi)
 			context.UePool.Store(ue.Supi, ue)
@@ -479,7 +475,6 @@ func (context *AMFContext) AmfUeFindByGuti(guti string) (ue *AmfUe, ok bool) {
 		logger.ContextLog.Infoln("Guti found locally : ", guti)
 	} else if context.EnableDbStore {
 		ue, ok = DbFetchUeByGuti(guti)
-		// fmt.Println("fetch from db, guti")
 		if ue != nil && ok {
 			logger.ContextLog.Infoln("Ue with Guti found in DB : ", guti)
 			context.UePool.Store(ue.Supi, ue)
@@ -519,7 +514,6 @@ func (context *AMFContext) RanUeFindByAmfUeNgapID(amfUeNgapID int64) *RanUe {
 	} else {
 		if context.EnableDbStore {
 			ranUe = DbFetchRanUeByAmfUeNgapID(amfUeNgapID)
-			// fmt.Println("fetch from db, amfRanID")
 			if ranUe != nil {
 				context.RanUePool.Store(ranUe.AmfUeNgapId, ranUe)
 				return ranUe

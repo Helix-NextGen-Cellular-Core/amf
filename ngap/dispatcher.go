@@ -27,40 +27,7 @@ import (
 
 func DispatchLb(ran *context.AmfRan, sctplbMsg *sdcoreAmfServer.SctplbMessage) {
 	logger.ConsumerLog.Infoln("DispatchLb GnbId:%v GnbIp: ", sctplbMsg.GnbId, " sctplbMsg.GnbIpAddr: ", sctplbMsg.GnbIpAddr)
-	// var ran *context.AmfRan
 	amfSelf := context.AMF_Self()
-
-	// if sctplbMsg.GnbId != "" {
-	// 	var ok bool
-	// 	ran, ok = amfSelf.AmfRanFindByGnbId(sctplbMsg.GnbId)
-	// 	if !ok {
-	// 		logger.NgapLog.Infof("Create a new NG connection for: %s", sctplbMsg.GnbId)
-	// 		ran = amfSelf.NewAmfRanId(sctplbMsg.GnbId)
-	// 		ran.Amf2RanMsgChan = Amf2RanMsgChan
-	// 		logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN ", sctplbMsg.GnbId)
-	// 	}
-	// } else if sctplbMsg.GnbIpAddr != "" {
-	// 	// it comes only for the first time/ NGSetup request
-	// 	fmt.Printf("GnbIpAddress received but no GnbId\n")
-	// 	ran = &context.AmfRan{}
-	// 	ran.SupportedTAList = context.NewSupportedTAIList()
-	// 	ran.Amf2RanMsgChan = Amf2RanMsgChan
-	// 	ran.Log = logger.NgapLog.WithField(logger.FieldRanAddr, sctplbMsg.GnbIpAddr)
-	// 	ran.GnbIp = sctplbMsg.GnbIpAddr
-	// 	// context.AmfRanPool.Store(ran.GnbIp, ran)
-	// 	logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN with GnbIpAddress ", sctplbMsg.GnbIpAddr)
-	// }
-
-	// if len(sctplbMsg.Msg) == 0 {
-	// 	ran.Log.Infoln("DispatchLb, Messgae of size 0 -  ", sctplbMsg.GnbId)
-	// 	ran.Log.Infof("RAN close the connection.")
-	// 	ran.Remove()
-	// 	return
-	// }
-
-	// if ran.Ran2AmfMsgChan == nil {
-	// 	ran.Ran2AmfMsgChan = make(chan *sdcoreAmfServer.SctplbMessage)
-	// }
 
 	pdu, err := ngap.Decoder(sctplbMsg.Msg)
 	if err != nil {
@@ -88,7 +55,6 @@ func DispatchLb(ran *context.AmfRan, sctplbMsg *sdcoreAmfServer.SctplbMessage) {
 			rsp.GnbId = ran.GnbId
 			rsp.Msg = make([]byte, len(sctplbMsg.Msg))
 			copy(rsp.Msg, sctplbMsg.Msg)
-			// ran.Amf2RanMsgChan = Amf2RanMsgChan
 			ran.Amf2RanMsgChan <- rsp
 			if ranUe != nil && ranUe.AmfUe != nil {
 				ranUe.AmfUe.Remove()
@@ -102,11 +68,9 @@ func DispatchLb(ran *context.AmfRan, sctplbMsg *sdcoreAmfServer.SctplbMessage) {
 		}
 	}
 
-	// ran.Log.Infof("ranUe: %v ", ranUe)
 	/* uecontext is found, submit the message to transaction queue*/
 	if ranUe != nil && ranUe.AmfUe != nil {
 		ranUe.AmfUe.SetEventChannel(NgapMsgHandler)
-		//ranUe.AmfUe.TxLog.Infof("Uecontext found. queuing ngap message to uechannel")
 		ranUe.AmfUe.EventChannel.UpdateNgapHandler(NgapMsgHandler)
 		ngapMsg := context.NgapMsg{
 			Ran:       ran,
@@ -147,7 +111,6 @@ func Dispatch(conn net.Conn, msg []byte) {
 	/* uecontext is found, submit the message to transaction queue*/
 	if ranUe != nil && ranUe.AmfUe != nil {
 		ranUe.AmfUe.SetEventChannel(NgapMsgHandler)
-		// ranUe.AmfUe.TxLog.Infof("Uecontext found. queuing ngap message to uechannel")
 		ranUe.AmfUe.EventChannel.UpdateNgapHandler(NgapMsgHandler)
 		ngapMsg := context.NgapMsg{
 			Ran:       ran,

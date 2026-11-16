@@ -131,7 +131,6 @@ func InitAmfContext(context *context.AMFContext) {
 			context.NrfCacheEvictionInterval = time.Duration(configuration.NrfCacheEvictionInterval)
 		}
 	}
-	// context.NfProfileList = make(map[models.NfType]map[string]int)
 }
 
 func getIntAlgOrder(integrityOrder []string) (intOrder []uint8) {

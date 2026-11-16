@@ -18,9 +18,6 @@ import (
 )
 
 func AMPolicyControlCreate(ue *amf_context.AmfUe, anType models.AccessType) (*models.ProblemDetails, error) {
-	// defer func(st int64) {
-	// 	logger.GmmLog.Warnln("ueID ", ue.Supi, " AMPolicyControlCreate took: ", (time.Now().UnixNano() - st))
-	// }(time.Now().UnixNano())
 
 	configuration := Npcf_AMPolicy.NewConfiguration()
 	configuration.SetBasePath(ue.PcfUri)

@@ -35,9 +35,6 @@ type UeStateForDB struct {
 var StoreAmContextDbChannel chan UeStateForDB
 var DeleteAmContextDbChannel chan UeStateForDB
 
-// var StoreAmContextDbChannel chan *AmfUe
-// var DeleteAmContextDbChannel chan *AmfUe
-
 type CustomFieldsAmfUe struct {
 	State       map[models.AccessType]string `json:"state"`
 	SmCtxList   map[string]SmContext         `json:"smCtxList"`
@@ -134,9 +131,6 @@ func SetupAmfCollection() {
 	StoreAmContextDbChannel = make(chan UeStateForDB, 8192)
 	DeleteAmContextDbChannel = make(chan UeStateForDB, 8192)
 
-	// StoreAmContextDbChannel = make(chan *AmfUe, 8192)
-	// DeleteAmContextDbChannel = make(chan *AmfUe, 8192)
-
 	for i := 1; i < 256; i++ {
 		go ProcessStoreContextInDB()
 		go ProcessDeleteContextFromDB()
@@ -158,37 +152,10 @@ func ToBsonM(data *AmfUe) (ret bson.M) {
 }
 
 func ProcessStoreContextInDB() {
-	// contextRedis := mainContext.Background()
 	for {
 
 		rcvdAmfUE := <-StoreAmContextDbChannel
-		// // rcvdAmfUE.RanUeLock.RLock()
-		// filter := bson.M{"supi": rcvdAmfUE.Supi}
-		// amfUeBsonA := ToBsonM(rcvdAmfUE)
-		// fmt.Println("len(amfUeBsonA) : ", len(amfUeBsonA))
-		// // rcvdAmfUE.RanUeLock.RUnlock()
-		// fmt.Println("Db ue Supi: ", rcvdAmfUE.Supi, "ue.Tmsi", rcvdAmfUE.Tmsi, "ue.Guti", rcvdAmfUE.Guti)
-		// st := time.Now()
-		// MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
 
-		// amfJsom, err := json.Marshal(rcvdAmfUE)
-		// if err != nil {
-		// 	logger.ContextLog.Errorf("amfue marshall error: %v", err)
-		// }
-		// var ranUeNgapIDVal, amfUeNgapIDVal int64
-		// var gnbId string
-		// rcvdAmfUE.RanUeLock.RLock()
-		// if rcvdAmfUE.RanUe != nil {
-		// 	ranUe := rcvdAmfUE.RanUe[models.AccessType__3_GPP_ACCESS]
-		// 	if ranUe != nil {
-		// 		gnbId = ranUe.Ran.GnbId
-		// 		// if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
-		// 		ranUeNgapIDVal = ranUe.RanUeNgapId
-		// 		amfUeNgapIDVal = ranUe.AmfUeNgapId
-		// 		// }
-		// 	}
-		// }
-		// rcvdAmfUE.RanUeLock.RUnlock()
 		amfJsom := rcvdAmfUE.AmfUeBsonA
 		err := AMF_Self().RedisClient.Set(rcvdAmfUE.Supi, amfJsom, 0).Err()
 		if err != nil {
@@ -223,28 +190,13 @@ func ProcessStoreContextInDB() {
 		}
 
 		logger.ContextLog.Warnln("Stored: Db ue Supi: ", rcvdAmfUE.Supi, "ue.Guti", rcvdAmfUE.Guti, "ranUeNgapIDVal: ", rcvdAmfUE.RanUeNgapID, "amfUeNgapIDVal: ", rcvdAmfUE.AmfUeNgapID, "gnbId: ", rcvdAmfUE.GnbId)
-		// tmpUe := DbFetch(rcvdAmfUE.Supi)
-		// if tmpUe != nil {
-		// 	fmt.Println("Got Ue: Db ue Supi: ", tmpUe.Supi, "ue.Tmsi", tmpUe.Tmsi, "ue.Guti", tmpUe.Guti, "tmpUe", tmpUe)
-		// }
 
-		// db_request_time := time.Now().Sub(st)
-		// fmt.Println("ProcessStoreContextInDB: Time to post to db: %v %v", filter, db_request_time.Microseconds(), db_request_time.Milliseconds())
-		// if len(StoreAmContextDbChannel) > 64 {
-		// 	fmt.Println("StoreAmContextDbChannel len: ", len(StoreAmContextDbChannel))
-		// }
-		// ueState := <-StoreAmContextDbChannel
-		// UeState = UeState.(UeStateForDB)
-		// filter := bson.M{"supi": ueState.Supi}
-		// MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, ueState.AmfUeBsonA)
 	}
 }
 
 func StoreContextInDB(ue *AmfUe) {
 	self := AMF_Self()
 	if self.EnableDbStore {
-		// StoreAmContextDbChannel <- ue
-		// amfUeBsonA := ToBsonM(ue)
 		amfJson, err := json.Marshal(ue)
 		if err != nil {
 			logger.ContextLog.Errorf("amfue marshall error: %v", err)
@@ -256,30 +208,20 @@ func StoreContextInDB(ue *AmfUe) {
 				ranUe := ue.RanUe[models.AccessType__3_GPP_ACCESS]
 				if ranUe != nil {
 					gnbId = ranUe.Ran.GnbId
-					// if ue.RanUe[models.AccessType__3_GPP_ACCESS] != nil {
 					ranUeNgapIDVal = ranUe.RanUeNgapId
 					amfUeNgapIDVal = ranUe.AmfUeNgapId
-					// }
 				}
 			}
 			ue.RanUeLock.RUnlock()
 			ueState := UeStateForDB{amfJson, ue.Supi, amfUeNgapIDVal, ranUeNgapIDVal, gnbId, ue.Guti}
 			StoreAmContextDbChannel <- ueState
 		}
-		// amfUeBsonA := ToBsonM(ue)
-		// filter := bson.M{"supi": ue.Supi}
-		// MongoDBLibrary.RestfulAPIPost(AmfUeDataColl, filter, amfUeBsonA)
 	}
 }
 
 func ProcessDeleteContextFromDB() {
-	// contextRedis := mainContext.Background()
 	for {
 		rcvdAmfUE := <-DeleteAmContextDbChannel
-		// filter := bson.M{"supi": rcvdAmfUE.Supi}
-		// ueState := <-DeleteAmContextDbChannel
-		// filter := bson.M{"supi": ueState.Supi}
-		// MongoDBLibrary.RestfulAPIDeleteOne(AmfUeDataColl, filter)
 		_, err := AMF_Self().RedisClient.Del(rcvdAmfUE.Supi).Result()
 		if err != nil {
 			logger.ContextLog.Warnln("Error in deleting from redis: ", err, "supi: ", rcvdAmfUE.Supi)
@@ -290,10 +232,6 @@ func ProcessDeleteContextFromDB() {
 func DeleteContextFromDB(ue *AmfUe) {
 	self := AMF_Self()
 	if self.EnableDbStore {
-		// DeleteAmContextDbChannel <- ue
-		// filter := bson.M{"supi": ue.Supi}
-		// MongoDBLibrary.RestfulAPIDeleteOne(AmfUeDataColl, filter)
-		// ueState := UeStateForDB{nil, ue.Supi}
 		ueState := UeStateForDB{nil, ue.Supi, 0, 0, "", ue.Guti}
 		DeleteAmContextDbChannel <- ueState
 	}
@@ -309,15 +247,12 @@ func DbFetch(key string) *AmfUe {
 		return nil
 	}
 	logger.ContextLog.Infoln("Redis DB result: ", result)
-	// err = json.Unmarshal(mapToByte(result), ue)
 	err = json.Unmarshal([]byte(result), ue)
 	if err != nil {
 		logger.ContextLog.Errorf("amfue unmarshall error: %v", err)
 		return nil
 	}
 
-	// dbMutex.Lock() // should it bere here? check Bilal
-	// defer dbMutex.Unlock()
 	ue.RanUeLock.Lock()
 	defer ue.RanUeLock.Unlock()
 	ue.RanUe[models.AccessType__3_GPP_ACCESS].AmfUe = ue
@@ -367,19 +302,10 @@ func DbFetchMongoDb(collName string, filter bson.M) *AmfUe {
 }
 
 func DbFetchRanUeByRanUeNgapID(ranUeNgapID int64, ran *AmfRan) *RanUe {
-	// filter := bson.M{}
-	// filter["customFieldsAmfUe.ranUeNgapId"] = ranUeNgapID
-	// filter["customFieldsAmfUe.ranId"] = ran.GnbId
 
-	// ue := DbFetch(AmfUeDataColl, filter)
-	// if ue == nil {
-	// 	// logger.ContextLog.Warnln("DbFetchRanUeByRanUeNgapID: no document found for ranUeNgapID ", ranUeNgapID)
-	// 	return nil
-	// }
 	ranUeNgapIDstr := strconv.FormatInt(ranUeNgapID, 10)
 	ue := DbFetch(ranUeNgapIDstr)
 	if ue == nil {
-		// logger.ContextLog.Warnln("DbFetchRanUeByRanUeNgapID: no document found for ranUeNgapID ", ranUeNgapID)
 		return nil
 	}
 
@@ -394,7 +320,6 @@ func DbFetchRanUeByRanUeNgapID(ranUeNgapID int64, ran *AmfRan) *RanUe {
 		return ranUe
 	}
 	ue.RanUeLock.RLock()
-	// defer ue.RanUeLock.RUnlock()
 	ranUe = ue.RanUe[models.AccessType__3_GPP_ACCESS] // TODO - Bilal Change since start
 	ran.RanUeList = append(ran.RanUeList, ranUe)
 	ue.RanUeLock.RUnlock()
@@ -403,13 +328,6 @@ func DbFetchRanUeByRanUeNgapID(ranUeNgapID int64, ran *AmfRan) *RanUe {
 
 func DbFetchRanUeByAmfUeNgapID(amfUeNgapID int64) *RanUe {
 	self := AMF_Self()
-	// filter := bson.M{}
-	// filter["customFieldsAmfUe.amfUeNgapId"] = amfUeNgapID
-	// ue := DbFetch(AmfUeDataColl, filter)
-	// if ue == nil {
-	// 	logger.ContextLog.Errorln("DbFetchRanUeByAmfUeNgapID : no document found for amfUeNgapID ", amfUeNgapID)
-	// 	return nil
-	// }
 	amfUeNgapIDstr := strconv.FormatInt(amfUeNgapID, 10)
 	ue := DbFetch(amfUeNgapIDstr)
 	if ue == nil {
@@ -434,16 +352,6 @@ func DbFetchRanUeByAmfUeNgapID(amfUeNgapID int64) *RanUe {
 
 func DbFetchUeByGuti(guti string) (ue *AmfUe, ok bool) {
 	self := AMF_Self()
-	// filter := bson.M{}
-	// filter["guti"] = guti
-
-	// ue = DbFetch(AmfUeDataColl, filter)
-	// if ue == nil {
-	// 	logger.ContextLog.Warnln("FindByGuti : no document found for guti ", guti)
-	// 	return nil, false
-	// } else {
-	// 	ok = true
-	// }
 
 	ue = DbFetch(guti)
 	if ue == nil {
@@ -466,17 +374,6 @@ func DbFetchUeByGuti(guti string) (ue *AmfUe, ok bool) {
 }
 
 func DbFetchUeBySupi(supi string) (ue *AmfUe, ok bool) {
-	// self := AMF_Self()
-	// filter := bson.M{}
-	// filter["supi"] = supi
-
-	// ue = DbFetch(AmfUeDataColl, filter)
-	// if ue == nil {
-	// 	logger.ContextLog.Warnln("FindBySupi : no document found for supi ", supi)
-	// 	return nil, false
-	// } else {
-	// 	ok = true
-	// }
 
 	self := AMF_Self()
 	ue = DbFetch(supi)

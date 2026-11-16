@@ -205,9 +205,7 @@ func Decode(ue *context.AmfUe, accessType models.AccessType, payload []byte) (*n
 		RRCEstablishmentCause := ue.RanUe[accessType].RRCEstablishmentCause
 		ue.RanUeLock.RUnlock()
 		if ue.SecurityContextAvailable && RRCEstablishmentCause != "0" {
-			// ue.NASLog.Warnln("Received Plain NAS message")
 			ue.MacFailed = false
-			// ue.SecurityContextAvailable = false
 			if err := msg.PlainNasDecode(&payload); err != nil {
 				return nil, err
 			}

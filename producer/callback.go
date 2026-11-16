@@ -92,7 +92,6 @@ func HandleSmContextStatusNotify(request *http_wrapper.Request) *http_wrapper.Re
 
 func SmContextStatusNotifyProcedure(guti string, pduSessionID int32,
 	smContextStatusNotification models.SmContextStatusNotification) *models.ProblemDetails {
-	// logger.ProducerLog.Debugf("SmContextStatusNotifyProcedure was called")
 	amfSelf := context.AMF_Self()
 
 	ue, ok := amfSelf.AmfUeFindByGuti(guti)

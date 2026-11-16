@@ -41,7 +41,6 @@ func ProducerHandler(s1, s2 string, msg interface{}) (interface{}, string, inter
 
 // TS23502 4.2.3.3, 4.2.4.3, 4.3.2.2, 4.3.2.3, 4.3.3.2, 4.3.7
 func HandleN1N2MessageTransferRequest(request *http_wrapper.Request) *http_wrapper.Response {
-	// start_time := time.Now().UnixNano()
 	var ue *context.AmfUe
 	var ok bool
 	var problemDetails *models.ProblemDetails
@@ -106,8 +105,6 @@ func HandleN1N2MessageTransferRequest(request *http_wrapper.Request) *http_wrapp
 		Status: http.StatusForbidden,
 		Cause:  "UNSPECIFIED",
 	}
-	// end_time := time.Now().UnixNano()
-	// logger.ProducerLog.Infof("HandleN1N2MessageTransferRequest took: %d us", end_time-start_time)
 	return http_wrapper.NewResponse(http.StatusForbidden, nil, problemDetails)
 }
 
@@ -135,8 +132,6 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 		n1MsgType uint8
 		anType    models.AccessType = models.AccessType__3_GPP_ACCESS
 	)
-
-	// start_time := time.Now().UnixNano()
 
 	amfSelf := context.AMF_Self()
 
@@ -278,8 +273,6 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 				n1n2MessageTransferRspData = new(models.N1N2MessageTransferRspData)
 				n1n2MessageTransferRspData.Cause = models.N1N2MessageTransferCause_N1_N2_TRANSFER_INITIATED
 				//context.StoreContextInDB(ue)
-				// end_time := time.Now().UnixNano()
-				// logger.ProducerLog.Infof("N1N2MessageTransferProcedure1 took: %d us", end_time-start_time)
 				return n1n2MessageTransferRspData, "", nil, nil
 			case models.NgapIeType_PDU_RES_MOD_REQ:
 				ue.ProducerLog.Debugln("AMF Transfer NGAP PDU Session Resource Modify Request from SMF")
@@ -382,8 +375,6 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 			}
 			ngap_message.SendPaging(ue, pkg)
 		}
-		// end_time := time.Now().UnixNano()
-		// logger.ProducerLog.Infof("N1N2MessageTransferProcedure2 took: %d us", end_time-start_time)
 
 		// TODO: WAITING_FOR_ASYNCHRONOUS_TRANSFER
 		return n1n2MessageTransferRspData, locationHeader, nil, nil
@@ -416,8 +407,6 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 				ue.RanUeLock.RUnlock()
 				gmm_message.SendNotification(ranUe, nasMsg)
 			}
-			// end_time := time.Now().UnixNano()
-			// logger.ProducerLog.Infof("N1N2MessageTransferProcedure3 took: %d us", end_time-start_time)
 
 			return n1n2MessageTransferRspData, locationHeader, nil, nil
 		} else {
@@ -444,8 +433,6 @@ func N1N2MessageTransferProcedure(ueContextID string, reqUri string,
 				logger.NgapLog.Errorf("Build Paging failed : %s", err.Error())
 			}
 			ngap_message.SendPaging(ue, pkg)
-			// end_time := time.Now().UnixNano()
-			// logger.ProducerLog.Infof("N1N2MessageTransferProcedure4 took: %d us", end_time-start_time)
 			return n1n2MessageTransferRspData, locationHeader, nil, nil
 		}
 	}

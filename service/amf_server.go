@@ -32,11 +32,9 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 		for {
 			select {
 			case msg1 := <-Amf2RanMsgChan:
-				// log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
 				if err := srv.Send(msg1); err != nil {
 					log.Println("Error in sending response")
 				}
-				// case <-ran.Exit:
 				// TBD how to clean in case sctplb crashed
 			}
 		}
@@ -48,13 +46,11 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 			log.Println("Error in SCTPLB stream ", err)
 			break
 		} else {
-			// log.Printf("Receive message body from client (%s): GnbIp: %v, GnbId: %v, Verbose - %s, MsgType %v ", req.SctplbId, req.GnbIpAddr, req.GnbId, req.VerboseMsg, req.Msgtype)
 			if req.Msgtype == sdcoreAmfServer.MsgType_INIT_MSG {
 				rsp := &sdcoreAmfServer.AmfMessage{}
 				rsp.VerboseMsg = "Hello From AMF Pod !"
 				rsp.Msgtype = sdcoreAmfServer.MsgType_INIT_MSG
 				rsp.AmfId = os.Getenv("HOSTNAME")
-				// log.Printf("Send Response message body from client (%s): Verbose - %s, MsgType %v ", rsp.AmfId, rsp.VerboseMsg, rsp.Msgtype)
 				amfSelf := context.AMF_Self()
 				var ran *context.AmfRan
 				var ok bool
@@ -113,7 +109,6 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 					ran.Amf2RanMsgChan = Amf2RanMsgChan
 					ran.Log = logger.NgapLog.WithField(logger.FieldRanAddr, req.GnbIpAddr)
 					ran.GnbIp = req.GnbIpAddr
-					// context.AMF_Self().AmfRanPool.Store(ran.GnbIp, ran)
 					StartRan2AmfMsgChan(ran, req.GnbIpAddr)
 					logger.ConsumerLog.Infoln("DispatchLb, Create new Amf RAN with GnbIpAddress ", req.GnbIpAddr)
 				}
@@ -123,7 +118,6 @@ func (s *Server) HandleMessage(srv sdcoreAmfServer.NgapService_HandleMessageServ
 					ran.Log.Infof("RAN close the connection.")
 					ran.Remove()
 				} else {
-					// ngap.DispatchLb(ran, req)
 					ran.Ran2AmfMsgChan <- req
 				}
 			}
@@ -139,9 +133,7 @@ func StartRan2AmfMsgChan(ran *context.AmfRan, GnbId string) {
 		for {
 			select {
 			case req := <-ran.Ran2AmfMsgChan:
-				// log.Printf("received Response sctplb message body from client (%s): Verbose - %s, MsgType %v GnbId: %v", msg1.AmfId, msg1.VerboseMsg, msg1.Msgtype, msg1.GnbId)
 				ngap.DispatchLb(ran, req)
-				// case <-ran.Exit:
 				// TBD how to clean in case ran is removed
 			}
 		}
