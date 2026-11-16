@@ -1,44 +1,15 @@
-# SPDX-FileCopyrightText: 2021 Open Networking Foundation <info@opennetworking.org>
-#
-# SPDX-License-Identifier: Apache-2.0
-#
-
+# Builds the Helix image ghcr.io/helix-nextgen-cellular-core/amf:v1.0.0
+# (the image used for the Helix SoCC 2026 experiments), the same way it was built and verified:
+#   docker build -t amf:local .
 FROM golang:1.18.3-stretch AS builder
+WORKDIR /go/src/amf
+COPY . .
+RUN go mod vendor \
+ && make all && mkdir -p /out/free5gc/amf && cp bin/* /out/free5gc/amf/
 
-LABEL maintainer="ONF <omec-dev@opennetworking.org>"
-
-#RUN apt remove cmdtest yarn
-RUN echo "deb http://archive.debian.org/debian stretch main" > /etc/apt/sources.list
-RUN apt-get update
-RUN apt-get -y install apt-transport-https ca-certificates
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg > pubkey.gpg
-RUN apt-key add pubkey.gpg
-RUN curl -sL https://deb.nodesource.com/setup_10.x | bash -
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" |  tee /etc/apt/sources.list.d/yarn.list
-RUN apt-get update
-RUN apt-get -y install gcc cmake autoconf libtool pkg-config libmnl-dev libyaml-dev  nodejs yarn
-RUN apt-get clean
-
-RUN cd $GOPATH/src && mkdir -p amf
-COPY . $GOPATH/src/amf
-RUN cd $GOPATH/src/amf \
-    && make all
-
-FROM alpine:3.17 as amf
-
-LABEL description="ONF open source 5G Core Network" \
-    version="Stage 3"
-
-ARG DEBUG_TOOLS
-
-# Install debug tools ~ 100MB (if DEBUG_TOOLS is set to true)
-RUN apk update
-RUN apk add -U vim strace net-tools curl netcat-openbsd bind-tools bash
-
-# Set working dir
-WORKDIR /free5gc
-RUN mkdir -p amf/
-
-# Copy executable and default certs
-COPY --from=builder /go/src/amf/bin/* ./amf
+FROM alpine:3.17
+LABEL org.opencontainers.image.source="https://github.com/Helix-NextGen-Cellular-Core/amf" \
+      org.opencontainers.image.licenses="Apache-2.0"
+RUN apk update && apk add -U vim strace net-tools curl netcat-openbsd bind-tools bash
+COPY --from=builder /out/ /
 WORKDIR /free5gc/amf
