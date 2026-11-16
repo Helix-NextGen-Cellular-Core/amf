@@ -82,7 +82,6 @@ func SendToRanUe(ue *context.RanUe, packet []byte) {
 	if ue.AmfUe == nil {
 		ue.Log.Warn("AmfUe is nil")
 	}
-	// ue.AmfUe.UeMutex.Unlock()
 	SendToRan(ran, packet)
 }
 

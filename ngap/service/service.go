@@ -119,15 +119,6 @@ func listenAndServe(addr *sctp.SCTPAddr, handler NGAPHandler) {
 		// NOTE: We have already set this value to 32MB on system wide level using sysctl
 		// TODO: check for default size of 32 MB, if not then set it/stop the server
 		//
-		// if err := newConn.SetReadBuffer(int(readBufSize)); err != nil {
-		// 	logger.NgapLog.Errorf("Set read buffer error: %+v, accept failed", err)
-		// 	if err = newConn.Close(); err != nil {
-		// 		logger.NgapLog.Errorf("Close error: %+v", err)
-		// 	}
-		// 	continue
-		// } else {
-		// 	logger.NgapLog.Debugf("Set read buffer to %d bytes", readBufSize)
-		// }
 
 		if err := newConn.SetReadTimeout(readTimeout); err != nil {
 			logger.NgapLog.Errorf("Set read timeout error: %+v, accept failed", err)
@@ -207,7 +198,6 @@ func handleConnection(conn *sctp.SCTPConn, bufsize uint32, handler NGAPHandler) 
 			}
 
 			logger.NgapLog.Tracef("Read %d bytes", n)
-			// logger.NgapLog.Tracef("Packet content:\n%+v", hex.Dump(buf[:n]))
 
 			// TODO: concurrent on per-UE message
 			handler.HandleMessage(conn, buf[:n])

@@ -83,7 +83,6 @@ func FetchRanUeContext(ran *context.AmfRan, message *ngapType.NGAPPDU) (*context
 				var err error
 				// <5G-S-TMSI> := <AMF Set ID><AMF Pointer><5G-TMSI>
 				// GUAMI := <MCC><MNC><AMF Region ID><AMF Set ID><AMF Pointer>
-				// 5G-GUTI := <GUAMI><5G-TMSI>
 				tmpReginID, _, _ := ngapConvert.AmfIdToNgap(servedGuami.AmfId)
 				amfID := ngapConvert.AmfIdToModels(tmpReginID, fiveGSTMSI.AMFSetID.Value, fiveGSTMSI.AMFPointer.Value)
 
@@ -616,7 +615,6 @@ func HandleNGSetupRequest(ran *context.AmfRan, message *ngapType.NGAPPDU) {
 		copy(taiList, context.AMF_Self().SupportTaiLists)
 		for i := range taiList {
 			taiList[i].Tac = util.TACConfigToModels(taiList[i].Tac)
-			// ran.Log.Infof("Supported Tai List in AMF Plmn: %v, Tac: 0x%v Tac: %v", taiList[i].PlmnId, taiList[i].Tac, context.AMF_Self().SupportTaiLists[i].Tac)
 		}
 
 		for i, tai := range ran.SupportedTAList {
@@ -1081,7 +1079,6 @@ func HandleUEContextReleaseComplete(ran *context.AmfRan, message *ngapType.NGAPP
 		if err != nil {
 			ran.Log.Errorln(err.Error())
 		}
-		// amfUe.PublishUeCtxtInfo()
 		context.StoreContextInDB(amfUe)
 	case context.UeContextReleaseUeContext:
 		ran.Log.Infof("Release UE[%s] Context : Release Ue Context", amfUe.Supi)
@@ -1093,11 +1090,9 @@ func HandleUEContextReleaseComplete(ran *context.AmfRan, message *ngapType.NGAPP
 		//Valid Security is not exist for this UE then only delete AMfUe Context
 		if !amfUe.SecurityContextAvailable {
 			ran.Log.Infof("Valid Security is not exist for the UE[%s], so deleting AmfUe Context", amfUe.Supi)
-			// amfUe.PublishUeCtxtInfo()
 			amfUe.Remove()
 			context.DeleteContextFromDB(amfUe)
 		} else {
-			// amfUe.PublishUeCtxtInfo()
 			context.StoreContextInDB(amfUe)
 		}
 	case context.UeContextReleaseDueToNwInitiatedDeregistraion:
@@ -1106,7 +1101,6 @@ func HandleUEContextReleaseComplete(ran *context.AmfRan, message *ngapType.NGAPP
 		if err != nil {
 			ran.Log.Errorln(err.Error())
 		}
-		// amfUe.PublishUeCtxtInfo()
 		amfUe.Remove()
 		context.DeleteContextFromDB(amfUe)
 	case context.UeContextReleaseHandover:
@@ -1121,7 +1115,6 @@ func HandleUEContextReleaseComplete(ran *context.AmfRan, message *ngapType.NGAPP
 			ran.Log.Errorln(err.Error())
 		}
 		amfUe.AttachRanUe(targetRanUe)
-		// amfUe.PublishUeCtxtInfo()
 		// Todo: remove indirect tunnel
 	default:
 		ran.Log.Errorf("Invalid Release Action[%d]", ranUe.ReleaseAction)
@@ -1372,7 +1365,6 @@ func HandleLocationReportingFailureIndication(ran *context.AmfRan, message *ngap
 
 func HandleInitialUEMessage(ran *context.AmfRan, message *ngapType.NGAPPDU, sctplbMsg *sdcoreAmfServer.SctplbMessage) {
 	amfSelf := context.AMF_Self()
-	// st := time.Now().UnixNano()
 	var rANUENGAPID *ngapType.RANUENGAPID
 	var nASPDU *ngapType.NASPDU
 	var userLocationInformation *ngapType.UserLocationInformation
@@ -1608,7 +1600,6 @@ func HandlePDUSessionResourceSetupResponse(ran *context.AmfRan, message *ngapTyp
 	var criticalityDiagnostics *ngapType.CriticalityDiagnostics
 
 	var ranUe *context.RanUe
-	// start_time := time.Now().UnixNano()
 	if ran == nil {
 		logger.NgapLog.Error("ran is nil")
 		return
@@ -1731,15 +1722,12 @@ func HandlePDUSessionResourceSetupResponse(ran *context.AmfRan, message *ngapTyp
 		}
 
 		//store context in DB. PDU Establishment is complete.
-		// amfUe.PublishUeCtxtInfo()
 		context.StoreContextInDB(amfUe)
 	}
 
 	if criticalityDiagnostics != nil {
 		printCriticalityDiagnostics(ran, criticalityDiagnostics)
 	}
-	// end_time := time.Now().UnixNano()
-	// ran.Log.Infof("HandlePDUSessionResourceSetupResponse time %d", end_time-start_time)
 }
 
 func BuildAndSendN1N2Msg(ranUe *context.RanUe, n1Msg, n2Info []byte, N2SmInfoType models.N2SmInfoType, pduSessId int32) {
@@ -2354,7 +2342,6 @@ func HandleInitialContextSetupResponse(ran *context.AmfRan, message *ngapType.NG
 		printCriticalityDiagnostics(ran, criticalityDiagnostics)
 	}
 	ranUe.RecvdInitialContextSetupResponse = true
-	// amfUe.PublishUeCtxtInfo()
 	context.StoreContextInDB(amfUe)
 
 	if ranUe.Ran.AnType == models.AccessType_NON_3_GPP_ACCESS {
@@ -3964,7 +3951,6 @@ func HandleRanConfigurationUpdate(ran *context.AmfRan, message *ngapType.NGAPPDU
 		copy(taiList, context.AMF_Self().SupportTaiLists)
 		for i := range taiList {
 			taiList[i].Tac = util.TACConfigToModels(taiList[i].Tac)
-			// ran.Log.Infof("Supported Tai List in AMF Plmn: %v, Tac: %v", taiList[i].PlmnId, taiList[i].Tac)
 		}
 		for i, tai := range ran.SupportedTAList {
 			if context.InTaiList(tai.Tai, taiList) {

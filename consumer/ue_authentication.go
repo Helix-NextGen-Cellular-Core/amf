@@ -48,9 +48,6 @@ func SendUEAuthenticationAuthenticateRequest(ue *amf_context.AmfUe,
 	parts := strings.Split(ue.Suci, "-")
 	imsi := fmt.Sprintf("imsi-%s%s%s", parts[2], parts[3], parts[7])
 	authInfo.SupiOrSuci = imsi //ue.Suci
-	// defer func(st int64) {
-	// 	logger.GmmLog.Warnln("ueID ", imsi, " SendUEAuthenticationAuthenticateRequest took: ", (time.Now().UnixNano() - st))
-	// }(time.Now().UnixNano())
 
 	if mnc, err := strconv.Atoi(plmnId.Mnc); err != nil {
 		return nil, nil, err
@@ -80,15 +77,11 @@ func SendUEAuthenticationAuthenticateRequest(ue *amf_context.AmfUe,
 func SendAuth5gAkaConfirmRequest(ue *amf_context.AmfUe, resStar string) (
 	*models.ConfirmationDataResponse, *models.ProblemDetails, error) {
 	var ausfUri string
-	// fmt.Println("ue.AuthenticationCtx.Links[link].Href: ", ue.AuthenticationCtx.Links["link"].Href)
 	if confirmUri, err := url.Parse(ue.AuthenticationCtx.Links["link"].Href); err != nil {
 		return nil, nil, err
 	} else {
 		ausfUri = fmt.Sprintf("%s://%s", confirmUri.Scheme, confirmUri.Host)
-		// fmt.Println("confirmUri: ", confirmUri)
 	}
-
-	// fmt.Println("ausfUri: ", ausfUri)
 
 	configuration := Nausf_UEAuthentication.NewConfiguration()
 	configuration.SetBasePath(ausfUri)
