@@ -2,11 +2,11 @@ module github.com/omec-project/amf
 
 go 1.18
 
-replace github.com/omec-project/nrf => ../nrf
+replace github.com/omec-project/nrf => github.com/Helix-NextGen-Cellular-Core/nrf v1.0.0
 
-replace github.com/omec-project/MongoDBLibrary => ../mongodblibrary
+replace github.com/omec-project/MongoDBLibrary => github.com/Helix-NextGen-Cellular-Core/mongodblibrary v1.0.0
 
-replace github.com/omec-project/util => ../util
+replace github.com/omec-project/util => github.com/Helix-NextGen-Cellular-Core/util v1.0.0
 
 require (
 	git.cs.nctu.edu.tw/calee/sctp v1.1.0
