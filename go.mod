@@ -1,6 +1,6 @@
 module github.com/omec-project/amf
 
-go 1.18
+go 1.23
 
 replace github.com/omec-project/nrf => github.com/Helix-NextGen-Cellular-Core/nrf v1.0.0
 
@@ -34,9 +34,9 @@ require (
 	github.com/omec-project/path_util v1.1.0
 	github.com/omec-project/util v1.0.9
 	github.com/prometheus/client_golang v1.14.0
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/viper v1.7.1
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli v1.22.10
 	go.mongodb.org/mongo-driver v1.11.0
 	google.golang.org/grpc v1.48.0
@@ -48,6 +48,7 @@ require (
 	github.com/goccy/go-json v0.9.7 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )
 
 require (
@@ -59,7 +60,6 @@ require (
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -90,7 +90,6 @@ require (
 	github.com/omec-project/util_3gpp v1.1.1 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
@@ -119,12 +118,11 @@ require (
 	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b // indirect
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/sync v0.0.0-20220819030929-7fc1605a5dde // indirect
-	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220728213248-dd149ef739b9 // indirect
 	gopkg.in/h2non/gock.v1 v1.1.2 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	inet.af/netaddr v0.0.0-20220811202034-502d2d690317 // indirect
 )
