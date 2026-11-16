@@ -7,7 +7,7 @@ COPY . .
 RUN go mod vendor \
  && make all && mkdir -p /out/free5gc/amf && cp bin/* /out/free5gc/amf/
 
-FROM alpine:3.17
+FROM alpine:3.24
 LABEL org.opencontainers.image.source="https://github.com/Helix-NextGen-Cellular-Core/amf" \
       org.opencontainers.image.licenses="Apache-2.0"
 RUN apk update && apk add -U vim strace net-tools curl netcat-openbsd bind-tools bash
